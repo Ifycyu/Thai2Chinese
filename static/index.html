@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泰语学习助手 ThaiWord</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/crypto.js"></script>
+</head>
+<body>
+    <header>
+        <h1>泰语学习助手 <span class="subtitle">ThaiWord</span></h1>
+        <p class="tagline">输入泰语句子，获取分词、释义、声调分析与发音</p>
+        <div style="margin-top:0.5rem;">
+            <a href="/" style="color:rgba(255,255,255,0.9);margin:0 0.5rem;">词义分析</a> |
+            <a href="/translate.html" style="color:rgba(255,255,255,0.9);margin:0 0.5rem;">翻译</a> |
+            <a href="/learn.html" style="color:rgba(255,255,255,0.9);margin:0 0.5rem;">学习</a> |
+            <a href="/settings.html" style="color:rgba(255,255,255,0.9);margin:0 0.5rem;">设置</a> |
+            <a href="/api-docs.html" style="color:rgba(255,255,255,0.9);margin:0 0.5rem;">API文档</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="input-section">
+            <textarea id="thaiInput" placeholder="请输入泰语句子，例如：ตลาดนัดเปิดทุกวันเสาร์" rows="3"></textarea>
+            <button id="analyzeBtn" onclick="analyzeSentence()">分析</button>
+        </section>
+
+        <section id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>分析中...</span>
+        </section>
+
+        <section id="results" class="results hidden">
+            <div id="sentenceDisplay" class="sentence-display"></div>
+            <div id="detailPanel" class="detail-panel hidden"></div>
+        </section>
+
+        <div id="tooltip" class="tooltip hidden"></div>
+
+        <section class="tone-legend">
+            <h3>声调图例</h3>
+            <div class="legend-items">
+                <span class="tone-mid">中声调</span>
+                <span class="tone-low">低声调</span>
+                <span class="tone-falling">降声调</span>
+                <span class="tone-high">高声调</span>
+                <span class="tone-rising">升声调</span>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

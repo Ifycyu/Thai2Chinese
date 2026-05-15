@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+*.mp3
+app/data/audio_cache/
+app/data/thai_chinese_dict.json
+app/data/server_config.json
+.DS_Store
+*.log

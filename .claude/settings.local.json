@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(netstat -ano)",
+      "PowerShell(Stop-Process -Id 21196 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 27328 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 11632 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 13984 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(taskkill /F /PID 27328)",
+      "PowerShell(taskkill /F /PID 11632)",
+      "PowerShell(taskkill /F /PID 13984)",
+      "PowerShell(taskkill /F /PID 21196)"
+    ]
+  }
+}

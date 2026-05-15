@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pythainlp
+python-crfsuite
+attacut
+torch
+edge-tts
+aiofiles
+python-dotenv
+cryptography

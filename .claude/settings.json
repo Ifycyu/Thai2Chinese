@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Process -Id 27328,11632,13984,21196 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId=27328 OR ProcessId=11632 OR ProcessId=13984 OR ProcessId=21196\")",
+      "PowerShell(curl -s http://127.0.0.1:8000/ -o NUL -w \"%{http_code}\" --connect-timeout 2 2>&1)",
+      "PowerShell(curl -s http://127.0.0.1:8080/ -o NUL -w \"%{http_code}\" --connect-timeout 2 2>&1)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8000/\" -TimeoutSec 3 -UseBasicParsing; Write-Host \"8000: $\\($r.StatusCode\\)\" } catch { Write-Host \"8000: $\\($_.Exception.Message\\)\" }; try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8080/\" -TimeoutSec 3 -UseBasicParsing; Write-Host \"8080: $\\($r.StatusCode\\)\" } catch { Write-Host \"8080: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId=20912 OR ProcessId=28592 OR ProcessId=1632 OR ProcessId=17488\")",
+      "PowerShell(taskkill /F /PID 22240 /PID 20536 /PID 19848 2>&1)",
+      "PowerShell(taskkill /F /PID 15724 /PID 26808 /PID 30628 2>&1)"
+    ]
+  }
+}

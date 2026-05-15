@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泰语翻译</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 1.5rem 1rem;
+        }
+        header h1 { font-size: 1.8rem; }
+        header .nav { margin-top: 0.5rem; }
+        header .nav a { color: rgba(255,255,255,0.8); text-decoration: none; margin: 0 0.5rem; }
+        header .nav a:hover { color: white; }
+        main { max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin-bottom: 1.5rem;
+        }
+        label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #555; }
+        textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 1.1rem;
+            font-family: inherit;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { outline: none; border-color: #667eea; }
+        .btn-group { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .result-area {
+            min-height: 100px;
+            padding: 1rem;
+            background: #f8f9ff;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        .loading-bar {
+            display: none;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+            background-size: 200% 100%;
+            animation: loading-gradient 1.5s ease infinite;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+        }
+        .loading-bar.show { display: block; }
+        @keyframes loading-gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .status-text {
+            font-size: 0.85rem;
+            color: #667eea;
+            margin-top: 0.3rem;
+            display: none;
+        }
+        .status-text.show { display: block; }
+        .error { color: #dc2626; margin-top: 0.5rem; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>泰语翻译</h1>
+        <div class="nav">
+            <a href="/">词义分析</a> |
+            <a href="/translate.html">翻译</a> |
+            <a href="/learn.html">学习</a> |
+            <a href="/settings.html">设置</a> |
+            <a href="/api-docs.html">API文档</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="card">
+            <label for="thaiInput">输入泰语句子：</label>
+            <textarea id="thaiInput" rows="4" placeholder="请输入泰语句子..."></textarea>
+            <div class="btn-group">
+                <button class="btn" id="translateBtn" onclick="doTranslate()">翻译</button>
+                <button class="btn btn-danger" id="cancelBtn" onclick="cancelTask()" style="display:none;">取消</button>
+            </div>
+            <div class="loading-bar" id="loadingBar"></div>
+            <div class="status-text" id="statusText"></div>
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="card">
+            <label>中文翻译：</label>
+            <div class="result-area" id="result">翻译结果将显示在这里...</div>
+        </div>
+
+        <div class="card">
+            <label>历史记录：</label>
+            <div id="history" style="font-size:0.9rem;color:#666;">暂无记录</div>
+        </div>
+    </main>
+
+    <script>
+        let history = [];
+        let currentTaskId = null;
+        let pollTimer = null;
+
+        function getHeaders() {
+            return {
+                "Content-Type": "application/json",
+                "X-Translate-Endpoint": localStorage.getItem("TRANSLATE_API_ENDPOINT") || "",
+                "X-Translate-Token": localStorage.getItem("TRANSLATE_AUTH_TOKEN") || "",
+                "X-Translate-Model": localStorage.getItem("TRANSLATE_MODEL") || "",
+            };
+        }
+
+        async function doTranslate() {
+            const input = document.getElementById("thaiInput").value.trim();
+            if (!input || currentTaskId) return;
+
+            const translateBtn = document.getElementById("translateBtn");
+            const cancelBtn = document.getElementById("cancelBtn");
+            const loadingBar = document.getElementById("loadingBar");
+            const statusText = document.getElementById("statusText");
+            const error = document.getElementById("error");
+            const result = document.getElementById("result");
+
+            translateBtn.disabled = true;
+            cancelBtn.style.display = "inline-block";
+            loadingBar.classList.add("show");
+            statusText.classList.add("show");
+            statusText.textContent = "翻译中，你可以继续使用其他功能...";
+            error.textContent = "";
+
+            try {
+                // Start async task
+                const resp = await fetch("/api/async/translate", {
+                    method: "POST",
+                    headers: getHeaders(),
+                    body: JSON.stringify({ text: input })
+                });
+
+                if (!resp.ok) throw new Error("请求失败");
+
+                const data = await resp.json();
+                if (data.status === "failed") {
+                    throw new Error(data.error);
+                }
+
+                currentTaskId = data.task_id;
+                statusText.textContent = "任务已提交，等待结果...";
+
+                // Poll for result
+                pollForResult(input);
+
+            } catch (err) {
+                error.textContent = err.message;
+                resetUI();
+            }
+        }
+
+        async function pollForResult(input) {
+            pollTimer = setInterval(async () => {
+                if (!currentTaskId) return;
+
+                try {
+                    const resp = await fetch(`/api/async/task/${currentTaskId}`);
+                    const data = await resp.json();
+
+                    if (data.status === "completed") {
+                        clearInterval(pollTimer);
+                        document.getElementById("result").textContent = data.result;
+                        history.unshift({ thai: input, chinese: data.result });
+                        if (history.length > 20) history.pop();
+                        renderHistory();
+                        resetUI();
+                    } else if (data.status === "failed") {
+                        clearInterval(pollTimer);
+                        document.getElementById("error").textContent = data.error;
+                        resetUI();
+                    } else {
+                        document.getElementById("statusText").textContent = "处理中...";
+                    }
+                } catch (err) {
+                    clearInterval(pollTimer);
+                    document.getElementById("error").textContent = "查询状态失败";
+                    resetUI();
+                }
+            }, 1000); // Poll every second
+        }
+
+        function cancelTask() {
+            if (pollTimer) clearInterval(pollTimer);
+            currentTaskId = null;
+            resetUI();
+            document.getElementById("statusText").textContent = "已取消";
+        }
+
+        function resetUI() {
+            currentTaskId = null;
+            document.getElementById("translateBtn").disabled = false;
+            document.getElementById("cancelBtn").style.display = "none";
+            document.getElementById("loadingBar").classList.remove("show");
+            setTimeout(() => {
+                document.getElementById("statusText").classList.remove("show");
+            }, 2000);
+        }
+
+        function renderHistory() {
+            const el = document.getElementById("history");
+            if (history.length === 0) {
+                el.innerHTML = '<div style="color:#888;font-size:0.9rem;">暂无记录</div>';
+                return;
+            }
+            el.innerHTML = history.map((h, i) =>
+                `<div style="padding:0.4rem 0;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="document.getElementById('thaiInput').value='${h.thai}'">
+                    <div style="font-size:1rem;">${h.thai}</div>
+                    <div style="color:#667eea;">→ ${h.chinese}</div>
+                </div>`
+            ).join("");
+        }
+
+        document.getElementById("thaiInput").addEventListener("keydown", e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                doTranslate();
+            }
+        });
+    </script>
+</body>
+</html>
