@@ -202,6 +202,73 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
     return None
 
 
+# Valid consonant clusters in Thai
+VALID_CLUSTERS = {
+    "กร", "กล", "กว", "ขร", "ขล", "ขว", "คร", "คล", "คว",
+    "ปร", "ปล", "พร", "พล", "ทร", "ศร", "ศล", "ศว",
+    "สร", "สก", "สต", "สบ", "สพ", "สน", "สม", "สย", "สว",
+}
+
+
+def detect_implicit_vowel(word: str) -> list[str] | None:
+    """Detect implicit vowel -ะ between consonants that can't form clusters.
+
+    Rule: When two consonants are written together and cannot form a
+    consonant cluster or前引 structure, insert implicit vowel -ะ between them.
+
+    Example: พยายาม → [พะ, ยา, ยาม] (พ and ย can't form cluster)
+    Example: ตำรวจ → [ตำ, รวจ] (ต and ร can form cluster ตร)
+
+    Returns: List of syllables if implicit vowel found, None otherwise.
+    """
+    chars = list(word)
+    if len(chars) < 3:
+        return None
+
+    # Find first two consonants
+    first_consonant = None
+    first_idx = -1
+    second_consonant = None
+    second_idx = -1
+    has_vowel_between = False
+
+    for i, ch in enumerate(chars):
+        if _is_consonant(ch):
+            if first_consonant is None:
+                first_consonant = ch
+                first_idx = i
+            elif second_consonant is None:
+                second_consonant = ch
+                second_idx = i
+                break
+        elif ch in VOWEL_AFTER_CONSONANT or _is_tone_mark(ch):
+            if first_consonant is not None and second_consonant is None:
+                has_vowel_between = True
+
+    if first_consonant is None or second_consonant is None:
+        return None
+
+    # If there's a vowel between, no implicit vowel needed
+    if has_vowel_between:
+        return None
+
+    # Check if they form a valid cluster
+    cluster = first_consonant + second_consonant
+    if cluster in VALID_CLUSTERS:
+        return None
+
+    # Check if it's a前引 structure (high class + low class)
+    cls_first = CONSONANT_CLASSES.get(first_consonant)
+    cls_second = CONSONANT_CLASSES.get(second_consonant)
+    if cls_first == "high" and cls_second == "low":
+        return None  # This is handled by detect_silent_prefix_split
+
+    # They can't form a cluster - insert implicit -ะ
+    syl1 = first_consonant + "ะ"
+    syl2 = "".join(chars[first_idx + 1:])
+    return [syl1, syl2]
+
+
 def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
     """Analyze a single Thai syllable and return tone analysis with Chinese explanation.
 

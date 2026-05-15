@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.tokenizer import segment_words, segment_syllables
 from app.services.ipa_service import get_ipa
-from app.services.tone_analyzer import analyze_syllable, CONSONANT_CLASSES, _is_consonant, detect_silent_prefix_split
+from app.services.tone_analyzer import analyze_syllable, CONSONANT_CLASSES, _is_consonant, detect_silent_prefix_split, detect_implicit_vowel
 from app.services.dictionary import dictionary
 
 router = APIRouter(prefix="/v1", tags=["external-api"])
@@ -87,6 +87,20 @@ async def analyze(
             manual_split = detect_silent_prefix_split(token)
             if manual_split:
                 syllables_raw = manual_split
+
+        # Check for implicit vowel (隐含元音 -ะ)
+        # Check each syllable that starts with two consonants
+        new_syllables = []
+        for syl in syllables_raw:
+            if len(syl) >= 2:
+                implicit_split = detect_implicit_vowel(syl)
+                if implicit_split:
+                    new_syllables.extend(implicit_split)
+                else:
+                    new_syllables.append(syl)
+            else:
+                new_syllables.append(syl)
+        syllables_raw = new_syllables
 
         # Detect consonant promotion (ห นำ style)
         promoted_consonants = set()
