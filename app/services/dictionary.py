@@ -18,8 +18,8 @@ DICT_PATH = Path(__file__).parent.parent / "data" / "thai_chinese_dict.json"
 class Dictionary:
     def __init__(self):
         self._load()
-        self._api_cache = {}
         self._last_api_time = 0
+        self._dirty = False  # Track if cache needs saving
 
     def _load(self):
         if DICT_PATH.exists():
@@ -29,19 +29,28 @@ class Dictionary:
             self._entries = {}
 
     def _save(self):
+        """Save entries to disk (only if changed)."""
+        if not self._dirty:
+            return
         with open(DICT_PATH, "w", encoding="utf-8") as f:
             json.dump(self._entries, f, ensure_ascii=False, indent=2)
+        self._dirty = False
+
+    def save(self):
+        """Public method to force save."""
+        self._save()
 
     def lookup(self, word: str) -> dict | None:
         return self._entries.get(word)
 
     def _lookup_api(self, word: str, api_url: str = "") -> dict | None:
-        """Look up a word using the free API and cache to local dict."""
+        """Look up a word using the free API and cache to memory."""
         if not api_url:
             return None
 
-        if word in self._api_cache:
-            return self._api_cache[word]
+        # Check memory cache first
+        if word in self._entries:
+            return self._entries[word]
 
         # Rate limit: 0.1s between API calls
         elapsed = time.time() - self._last_api_time
@@ -84,16 +93,13 @@ class Dictionary:
                         "usage": ""
                     }
 
-                    # Save to local dict
+                    # Cache to memory (not disk)
                     self._entries[word] = entry
-                    self._save()
-
-                    self._api_cache[word] = entry
+                    self._dirty = True
                     return entry
         except Exception:
             pass
 
-        self._api_cache[word] = None
         return None
 
     def get_definition(self, word: str, api_url: str = "") -> str:

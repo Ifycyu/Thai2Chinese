@@ -2,10 +2,28 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
+import asyncio
 
 from app.routers import analyze, tts, api, translate, learn, async_tasks
+from app.services.dictionary import dictionary
 
 app = FastAPI(title="ThaiWord - Thai Language Learning Tool")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Save dictionary cache periodically."""
+    async def periodic_save():
+        while True:
+            await asyncio.sleep(300)  # Save every 5 minutes
+            dictionary.save()
+    asyncio.create_task(periodic_save())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Save dictionary cache on shutdown."""
+    dictionary.save()
   
 # Internal API (for frontend)
 app.include_router(analyze.router, prefix="/api")
