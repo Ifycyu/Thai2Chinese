@@ -6,7 +6,7 @@ from pathlib import Path
 from app.routers import analyze, tts, api, translate, learn, async_tasks
 
 app = FastAPI(title="ThaiWord - Thai Language Learning Tool")
-    
+
 # Internal API (for frontend)
 app.include_router(analyze.router, prefix="/api")
 app.include_router(tts.router, prefix="/api")
