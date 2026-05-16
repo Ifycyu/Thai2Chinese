@@ -12,7 +12,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 WEBHOOK_PORT = int(os.environ.get("WEBHOOK_PORT", 9000))
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 PROJECT_DIR = os.environ.get("PROJECT_DIR", "/root/python/Thai2Chinese")
-RESTART_COMMAND = os.environ.get("RESTART_COMMAND", "systemctl restart thai2chinese")
+RESTART_COMMAND = os.environ.get("RESTART_COMMAND", "/usr/bin/systemctl restart thai2chinese")
 
 
 class WebhookHandler(BaseHTTPRequestHandler):
