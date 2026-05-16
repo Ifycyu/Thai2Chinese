@@ -56,7 +56,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             try:
                 # Pull latest code
                 subprocess.run(
-                    ["git", "pull", "origin", "main"],
+                    ["/usr/bin/git", "pull", "origin", "main"],
                     cwd=PROJECT_DIR,
                     check=True,
                     capture_output=True
@@ -64,7 +64,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
                 # Install dependencies if requirements.txt changed
                 subprocess.run(
-                    ["pip", "install", "-r", "requirements.txt"],
+                    [PROJECT_DIR + "/venv/bin/pip", "install", "-r", "requirements.txt"],
                     cwd=PROJECT_DIR,
                     check=True,
                     capture_output=True
