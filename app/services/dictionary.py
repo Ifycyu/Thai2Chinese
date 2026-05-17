@@ -2,6 +2,7 @@ import json
 import os
 import re
 import time
+import threading
 import urllib.request
 import urllib.parse
 from pathlib import Path
@@ -17,9 +18,10 @@ DICT_PATH = Path(__file__).parent.parent / "data" / "thai_chinese_dict.json"
 
 class Dictionary:
     def __init__(self):
+        self._lock = threading.Lock()
         self._load()
         self._last_api_time = 0
-        self._dirty = False  # Track if cache needs saving
+        self._dirty = False
 
     def _load(self):
         if DICT_PATH.exists():
@@ -29,33 +31,44 @@ class Dictionary:
             self._entries = {}
 
     def _save(self):
-        """Save entries to disk (only if changed)."""
+        """Save entries to disk (only if changed, thread-safe)."""
         if not self._dirty:
             return
-        with open(DICT_PATH, "w", encoding="utf-8") as f:
-            json.dump(self._entries, f, ensure_ascii=False, indent=2)
-        self._dirty = False
+        with self._lock:
+            if not self._dirty:
+                return
+            with open(DICT_PATH, "w", encoding="utf-8") as f:
+                json.dump(self._entries, f, ensure_ascii=False, indent=2)
+            self._dirty = False
 
     def save(self):
         """Public method to force save."""
         self._save()
 
     def lookup(self, word: str) -> dict | None:
-        return self._entries.get(word)
+        """Thread-safe lookup."""
+        with self._lock:
+            return self._entries.get(word)
 
     def _lookup_api(self, word: str, api_url: str = "") -> dict | None:
         """Look up a word using the free API and cache to memory."""
         if not api_url:
             return None
 
-        # Check memory cache first
-        if word in self._entries:
-            return self._entries[word]
+        # Check memory cache first (thread-safe)
+        with self._lock:
+            if word in self._entries:
+                return self._entries[word]
 
-        # Rate limit: 0.1s between API calls
-        elapsed = time.time() - self._last_api_time
-        if elapsed < 0.1:
-            time.sleep(0.1 - elapsed)
+        # Rate limit: 0.1s between API calls (thread-safe)
+        with self._lock:
+            elapsed = time.time() - self._last_api_time
+            if elapsed < 0.1:
+                wait_time = 0.1 - elapsed
+            else:
+                wait_time = 0
+        if wait_time > 0:
+            time.sleep(wait_time)
 
         data = urllib.parse.urlencode({"str": word}).encode()
         req = urllib.request.Request(api_url, data=data, method="POST")
@@ -63,7 +76,8 @@ class Dictionary:
         req.add_header("accept", "*/*")
 
         try:
-            self._last_api_time = time.time()
+            with self._lock:
+                self._last_api_time = time.time()
             resp = urllib.request.urlopen(req, timeout=5)
             result = json.loads(resp.read().decode("utf-8"))
             if "1" in result and "list" in result["1"]:
@@ -72,14 +86,12 @@ class Dictionary:
                     item = items[0]
                     explain = item.get("explain", "")
 
-                    # Extract word class
                     word_class = "未知"
                     for abbr, cn in CLASS_MAP.items():
                         if abbr in explain:
                             word_class = cn
                             break
 
-                    # Extract definition
                     definition = re.sub(r'\([ก-ฮ]+\.\)', '', explain).strip()
                     definition = re.sub(r'\([^)]*\)', '', definition).strip()
                     if not definition:
@@ -93,9 +105,10 @@ class Dictionary:
                         "usage": ""
                     }
 
-                    # Cache to memory (not disk)
-                    self._entries[word] = entry
-                    self._dirty = True
+                    # Cache to memory (thread-safe)
+                    with self._lock:
+                        self._entries[word] = entry
+                        self._dirty = True
                     return entry
         except Exception:
             pass
