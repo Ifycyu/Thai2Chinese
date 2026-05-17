@@ -225,12 +225,13 @@ function showDetail(idx) {
                 const finalType = syl.final_type === "live" ? "清尾音" : "浊尾音";
                 finalDisplay = `${finalType} (${syl.final_consonant})`;
             }
+            const vowelLenDisplay = syl.vowel_length === "short" ? "短" : syl.vowel_length === "special" ? "特殊" : "长";
             h += `<tr>`;
             h += `<td class="syl-thai">${syl.text}</td>`;
             h += `<td>${syl.consonant}${syl.ho_prefix ? " (หนำ)" : ""}</td>`;
             h += `<td>${syl.consonant_class_cn || classCN(syl.consonant_class)}</td>`;
             h += `<td>${syl.vowel}</td>`;
-            h += `<td>${syl.vowel_length === "short" ? "短" : "长"}</td>`;
+            h += `<td>${vowelLenDisplay}</td>`;
             h += `<td>${toneMarkDisplay}</td>`;
             h += `<td>${finalDisplay}</td>`;
             h += `<td class="${tc}">${syl.tone_cn || TONE_CN[syl.tone]} ${TONE_NUM_CN[syl.tone_number] || ""}</td>`;

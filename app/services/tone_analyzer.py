@@ -98,6 +98,7 @@ TONE_RULES = {
 
 # Vowel pattern detection: ordered by specificity (longer patterns first)
 # Each entry: (pattern_chars_set, vowel_name, length)
+# length: "short", "long", "special" (พิเศษ)
 # We detect vowels by looking at characters around the initial consonant
 # Use "-" to represent vowel position instead of "อ" carrier
 VOWEL_AFTER_CONSONANT = {
@@ -105,7 +106,7 @@ VOWEL_AFTER_CONSONANT = {
     "ะ": ("-ะ", "short"),      # ะ - short a
     "ั": ("-ั", "short"),      #ั  - short a (mai han-akat)
     "า": ("-า", "long"),       # า - long a
-    "ำ": ("-ำ", "long"),       # ำ - am (long)
+    "ำ": ("-ำ", "special"),    # ำ - am (special)
     "ิ": ("-ิ", "short"),      #ิ  - short i
     "ี": ("-ี", "long"),       #ี  - long i
     "ึ": ("-ึ", "short"),      #ึ  - short ue
@@ -115,8 +116,8 @@ VOWEL_AFTER_CONSONANT = {
     "เ": ("เ-", "long"),       # เ - e (leading vowel)
     "แ": ("แ-", "long"),       # แ - ae (leading vowel)
     "โ": ("โ-", "long"),       # โ - o (leading vowel)
-    "ใ": ("ใ-", "long"),       # ใ - ai (leading vowel)
-    "ไ": ("ไ-", "long"),       # ไ - ai (leading vowel)
+    "ใ": ("ใ-", "special"),    # ใ - ai (special)
+    "ไ": ("ไ-", "special"),    # ไ - ai (special)
     "ๅ": ("-ๅ", "long"),       # ๅ - long y
 }
 
@@ -387,7 +388,7 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         elif "า" in vowel_marks_found:
             # เ-า pattern (ao)
             vowel_name = "เ-า"
-            vowel_length = "long"
+            vowel_length = "special"
         elif "ิ" in vowel_marks_found:
             # เ-ิ pattern (short e, like เดิน)
             vowel_name = "เ-ิ"
@@ -563,7 +564,12 @@ def _generate_explanation(
         parts.append(f"{cls} '{initial_consonant}'")
 
     # 2. Vowel
-    length_cn = "短" if vowel_length == "short" else "长"
+    if vowel_length == "short":
+        length_cn = "短"
+    elif vowel_length == "special":
+        length_cn = "特殊"
+    else:
+        length_cn = "长"
     parts.append(f"{length_cn}元音 '{vowel_name}'")
 
     # 3. Final type
@@ -590,6 +596,10 @@ def _generate_pronunciation_tip(vowel_length: str, final_consonant: str | None, 
         if final_consonant:
             return f"短音 + 收尾({final_consonant})"
         return "短促"
+    elif vowel_length == "special":
+        if final_consonant:
+            return f"特殊元音 + 收尾({final_consonant})"
+        return "特殊元音"
     else:
         if final_consonant:
             return f"长音 + 收尾({final_consonant})"
