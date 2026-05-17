@@ -506,7 +506,22 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
 
     # Step 7: Determine tone
     effective_class = consonant_class
-    tone = TONE_RULES.get((effective_class, tone_mark_name, final_type), "mid")
+
+    # Special vowel rules:
+    # ฤ/อำ → treat as short vowel (follow normal rules)
+    # ฤา → treat as long vowel (follow normal rules)
+    # ไ/ใ/เา → fixed 5th tone (rising), completely overrides normal rules
+    # ขำ → exception, becomes 5th tone (rising)
+    is_fixed_rising = vowel_name in ("ไ-", "ใ-", "เ-า") and not tone_mark_name
+    is_kham_exception = syllable == "ขำ"
+
+    if is_fixed_rising or is_kham_exception:
+        # ไ/ใ/เา without tone mark → always rising (5th tone)
+        # ขำ → exception, rising (5th tone)
+        tone = "rising"
+    else:
+        # Normal tone rules
+        tone = TONE_RULES.get((effective_class, tone_mark_name, final_type), "mid")
 
     # Step 8: Generate Chinese explanation
     explanation = _generate_explanation(
