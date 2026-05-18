@@ -389,6 +389,10 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             # เ-า pattern (ao)
             vowel_name = "เ-า"
             vowel_length = "special"
+        elif "็" in vowel_marks_found:
+            # เ-็ pattern → base form is เ-ะ (short e, with final consonant)
+            vowel_name = "เ-ะ"
+            vowel_length = "short"
         elif "ิ" in vowel_marks_found:
             # เ-ิ pattern (short e, like เดิน)
             vowel_name = "เ-ิ"
@@ -396,6 +400,15 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         else:
             # Simple เ vowel
             vowel_name = "เ-"
+            vowel_length = "long"
+    elif leading_vowel == "แ":
+        if "็" in vowel_marks_found:
+            # แ-็ pattern → base form is แ-ะ (short ae, with final consonant)
+            vowel_name = "แ-ะ"
+            vowel_length = "short"
+        else:
+            # Simple แ vowel
+            vowel_name = "แ-"
             vowel_length = "long"
     elif leading_vowel:
         # Other leading vowels (แ, โ, ใ, ไ)
@@ -412,7 +425,14 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         # Check what follows the last vowel mark
         chars_after_vowel = after_consonant[last_vowel_idx + 1:] if last_vowel_idx >= 0 else []
 
-        if "ั" in vowel_marks_found and "ว" in chars_after_vowel:
+        # Check for modified vowel forms (with final consonant)
+        has_final = any(_is_consonant(ch) for ch in after_consonant[last_vowel_idx + 1:] if last_vowel_idx >= 0)
+
+        if "็" in vowel_marks_found and "อ" in vowel_marks_found:
+            # -็อ- pattern → base form is เ-าะ (short ɔ, with final consonant)
+            vowel_name = "เ-าะ"
+            vowel_length = "short"
+        elif "ั" in vowel_marks_found and "ว" in chars_after_vowel:
             # ัว pattern (ua)
             vowel_name = "-ัว"
             vowel_length = "long"
