@@ -1,6 +1,7 @@
 """Async task system with concurrency control and task expiration."""
 import uuid
 import asyncio
+import logging
 import time
 from fastapi import APIRouter, Header
 from pydantic import BaseModel
@@ -8,6 +9,7 @@ from typing import Optional
 from app.routers.translate import do_translate
 from app.routers.learn import do_learn
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tasks"])
 
 # ========== Configuration ==========
@@ -34,10 +36,12 @@ class TaskResponse(BaseModel):
 
 class TranslateRequest(BaseModel):
     text: str
+    max_length: int = 1000
 
 
 class LearnRequest(BaseModel):
     sentence: str
+    max_length: int = 2000
 
 
 async def run_translate_task(task_id: str, text: str, endpoint: str, token: str, model: str):
@@ -77,7 +81,7 @@ def get_queue_position(task_type: str) -> int:
     return sum(1 for t in tasks.values() if t.get("type") == "learn" and t["status"] == "pending")
 
 
-async def cleanup_expired_tasks():
+async def cleanup_tasks():
     """Periodically clean up expired tasks."""
     while True:
         await asyncio.sleep(TASK_CLEANUP_INTERVAL)
@@ -88,6 +92,8 @@ async def cleanup_expired_tasks():
         ]
         for tid in expired:
             del tasks[tid]
+        if expired:
+            logger.info(f"Cleaned up {len(expired)} expired tasks")
 
 
 @router.post("/translate", response_model=TaskResponse)
@@ -98,6 +104,11 @@ async def translate(
     x_translate_model: Optional[str] = Header(None),
 ):
     """Start translation task with concurrency control."""
+    if not req.text.strip():
+        return TaskResponse(task_id="", status="failed", error="请输入文本")
+    if len(req.text) > req.max_length:
+        return TaskResponse(task_id="", status="failed", error=f"文本超过最大长度限制({req.max_length}字符)")
+
     import os
     endpoint = x_translate_endpoint or os.environ.get("TRANSLATE_API_ENDPOINT", "")
     token = x_translate_token or os.environ.get("TRANSLATE_AUTH_TOKEN", "")
@@ -130,6 +141,11 @@ async def learn(
     x_translate_model: Optional[str] = Header(None),
 ):
     """Start learning analysis task with concurrency control."""
+    if not req.sentence.strip():
+        return TaskResponse(task_id="", status="failed", error="请输入句子")
+    if len(req.sentence) > req.max_length:
+        return TaskResponse(task_id="", status="failed", error=f"句子超过最大长度限制({req.max_length}字符)")
+
     import os
     endpoint = x_translate_endpoint or os.environ.get("TRANSLATE_API_ENDPOINT", "")
     token = x_translate_token or os.environ.get("TRANSLATE_AUTH_TOKEN", "")

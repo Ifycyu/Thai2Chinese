@@ -1,11 +1,16 @@
-"""External API endpoints for Thai word analysis."""
+"""External API endpoints for third-party integration."""
+import logging
 from fastapi import APIRouter, Query, Header
 from pydantic import BaseModel
 from typing import Optional
-from app.services.tokenizer import segment_words, segment_syllables
+
+from app.services.tokenizer import segment_words
 from app.services.ipa_service import get_ipa
-from app.services.tone_analyzer import analyze_syllable, CONSONANT_CLASSES, _is_consonant, detect_silent_prefix_split, detect_implicit_vowel
+from app.services.tone_analyzer import analyze_syllable
+from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["external-api"])
 
@@ -61,6 +66,30 @@ class SplitResponse(BaseModel):
     words: list[str]
 
 
+# ========== Helper ==========
+
+def _syllable_to_info(syl) -> SyllableInfo:
+    """Convert SyllableAnalysis to SyllableInfo."""
+    return SyllableInfo(
+        text=syl.text,
+        ipa=syl.ipa,
+        consonant=syl.consonant,
+        consonant_class=syl.consonant_class,
+        vowel=syl.vowel,
+        vowel_length=syl.vowel_length,
+        tone_mark=syl.tone_mark,
+        final_consonant=syl.final_consonant,
+        final_type=syl.final_type,
+        tone=ToneInfo(
+            tone=syl.tone,
+            tone_cn=syl.tone_cn,
+            tone_number=syl.tone_number,
+            explanation=syl.tone_explanation,
+        ),
+        pronunciation_tip=syl.pronunciation_tip,
+    )
+
+
 # ========== API Endpoints ==========
 
 @router.post("/analyze", response_model=AnalyzeResponse,
@@ -70,77 +99,21 @@ async def analyze(
     sentence: str = Query(..., description="泰语句子"),
     x_dict_api: Optional[str] = Header(None, description="词典API地址"),
 ):
+    dict_api_url = x_dict_api or ""
     tokens = segment_words(sentence.strip())
     words = []
-    dict_api_url = x_dict_api or ""
 
     for token in tokens:
         entry = dictionary.get_full_entry(token, api_url=dict_api_url)
         ipa = get_ipa(token)
-
-        syllables_raw = segment_syllables(token)
-        if not syllables_raw:
-            syllables_raw = [token]
-
-        # Check for silent prefix pattern (前引字)
-        if len(syllables_raw) == 1:
-            manual_split = detect_silent_prefix_split(token)
-            if manual_split:
-                syllables_raw = manual_split
-
-        # Check for implicit vowel (隐含元音 -ะ)
-        # Check each syllable that starts with two consonants
-        new_syllables = []
-        for syl in syllables_raw:
-            if len(syl) >= 2:
-                implicit_split = detect_implicit_vowel(syl)
-                if implicit_split:
-                    new_syllables.extend(implicit_split)
-                else:
-                    new_syllables.append(syl)
-            else:
-                new_syllables.append(syl)
-        syllables_raw = new_syllables
-
-        # Detect consonant promotion (ห นำ style)
-        promoted_consonants = set()
-        token_chars = list(token)
-        for i in range(len(token_chars) - 1):
-            if _is_consonant(token_chars[i]) and _is_consonant(token_chars[i + 1]):
-                cls_curr = CONSONANT_CLASSES.get(token_chars[i])
-                cls_next = CONSONANT_CLASSES.get(token_chars[i + 1])
-                if cls_curr == "high" and cls_next == "low":
-                    promoted_consonants.add(token_chars[i + 1])
-
-        syllables = []
-        for syl in syllables_raw:
-            a = analyze_syllable(syl, promoted_consonants=promoted_consonants)
-            a["ipa"] = get_ipa(syl)
-            syllables.append(SyllableInfo(
-                text=a["text"],
-                ipa=a["ipa"],
-                consonant=a["consonant"],
-                consonant_class=a["consonant_class"],
-                vowel=a["vowel"],
-                vowel_length=a["vowel_length"],
-                tone_mark=a["tone_mark"],
-                final_consonant=a["final_consonant"],
-                final_type=a["final_type"],
-                tone=ToneInfo(
-                    tone=a["tone"],
-                    tone_cn=a["tone_cn"],
-                    tone_number=a["tone_number"],
-                    explanation=a["tone_explanation"],
-                ),
-                pronunciation_tip=a["pronunciation_tip"],
-            ))
+        syllables = analyze_word_syllables(token)
 
         words.append(WordResult(
             word=token,
             ipa=ipa,
             word_class=entry.get("word_class", "未知"),
             chinese=entry.get("chinese", ""),
-            syllables=syllables,
+            syllables=[_syllable_to_info(s) for s in syllables],
         ))
 
     return AnalyzeResponse(sentence=sentence.strip(), words=words)
@@ -156,56 +129,14 @@ async def dict_lookup(
     dict_api_url = x_dict_api or ""
     entry = dictionary.get_full_entry(word, api_url=dict_api_url)
     ipa = get_ipa(word)
-
-    syllables_raw = segment_syllables(word)
-    if not syllables_raw:
-        syllables_raw = [word]
-
-    # Check for silent prefix pattern (前引字)
-    if len(syllables_raw) == 1:
-        manual_split = detect_silent_prefix_split(word)
-        if manual_split:
-            syllables_raw = manual_split
-
-    # Detect consonant promotion (ห นำ style)
-    promoted_consonants = set()
-    word_chars = list(word)
-    for i in range(len(word_chars) - 1):
-        if _is_consonant(word_chars[i]) and _is_consonant(word_chars[i + 1]):
-            cls_curr = CONSONANT_CLASSES.get(word_chars[i])
-            cls_next = CONSONANT_CLASSES.get(word_chars[i + 1])
-            if cls_curr == "high" and cls_next == "low":
-                promoted_consonants.add(word_chars[i + 1])
-
-    syllables = []
-    for syl in syllables_raw:
-        a = analyze_syllable(syl, promoted_consonants=promoted_consonants)
-        a["ipa"] = get_ipa(syl)
-        syllables.append(SyllableInfo(
-            text=a["text"],
-            ipa=a["ipa"],
-            consonant=a["consonant"],
-            consonant_class=a["consonant_class"],
-            vowel=a["vowel"],
-            vowel_length=a["vowel_length"],
-            tone_mark=a["tone_mark"],
-            final_consonant=a["final_consonant"],
-            final_type=a["final_type"],
-            tone=ToneInfo(
-                tone=a["tone"],
-                tone_cn=a["tone_cn"],
-                tone_number=a["tone_number"],
-                explanation=a["tone_explanation"],
-            ),
-            pronunciation_tip=a["pronunciation_tip"],
-        ))
+    syllables = analyze_word_syllables(word)
 
     return DictResponse(
         word=word,
         ipa=ipa,
         chinese=entry.get("chinese", ""),
         word_class=entry.get("word_class", "未知"),
-        syllables=syllables,
+        syllables=[_syllable_to_info(s) for s in syllables],
         examples=entry.get("examples", []),
         compounds=entry.get("compounds", []),
     )
@@ -223,30 +154,25 @@ async def split(sentence: str = Query(..., description="泰语句子")):
             summary="声调分析",
             description="分析泰语单词的声调（自动拆分音节）")
 async def tone(word: str):
-    syllables = segment_syllables(word)
-    if not syllables:
-        syllables = [word]
-
+    syllables = analyze_word_syllables(word)
     results = []
     for syl in syllables:
-        a = analyze_syllable(syl)
         results.append({
-            "syllable": syl,
-            "ipa": get_ipa(syl),
-            "consonant": a["consonant"],
-            "consonant_class": a["consonant_class"],
-            "vowel": a["vowel"],
-            "vowel_length": a["vowel_length"],
-            "tone_mark": a["tone_mark"],
-            "final_consonant": a["final_consonant"],
-            "final_type": a["final_type"],
-            "tone": a["tone"],
-            "tone_cn": a["tone_cn"],
-            "tone_number": a["tone_number"],
-            "explanation": a["tone_explanation"],
-            "pronunciation_tip": a["pronunciation_tip"],
+            "syllable": syl.text,
+            "ipa": syl.ipa,
+            "consonant": syl.consonant,
+            "consonant_class": syl.consonant_class,
+            "vowel": syl.vowel,
+            "vowel_length": syl.vowel_length,
+            "tone_mark": syl.tone_mark,
+            "final_consonant": syl.final_consonant,
+            "final_type": syl.final_type,
+            "tone": syl.tone,
+            "tone_cn": syl.tone_cn,
+            "tone_number": syl.tone_number,
+            "explanation": syl.tone_explanation,
+            "pronunciation_tip": syl.pronunciation_tip,
         })
-
     return {"word": word, "syllables": results}
 
 
@@ -255,14 +181,14 @@ async def tone(word: str):
              description="将泰语翻译成中文")
 async def translate(
     sentence: str = Query(..., description="泰语句子"),
-    x_translate_endpoint: Optional[str] = Header(None, description="翻译API端点"),
-    x_translate_token: Optional[str] = Header(None, description="认证Token"),
-    x_translate_model: Optional[str] = Header(None, description="模型名称"),
+    x_translate_endpoint: Optional[str] = Header(None),
+    x_translate_token: Optional[str] = Header(None),
+    x_translate_model: Optional[str] = Header(None),
 ):
     from app.routers.translate import do_translate
     import os
     endpoint = x_translate_endpoint or os.environ.get("TRANSLATE_API_ENDPOINT", "")
     token = x_translate_token or os.environ.get("TRANSLATE_AUTH_TOKEN", "")
     model = x_translate_model or os.environ.get("TRANSLATE_MODEL", "mimo-v2.5-pro")
-    result = do_translate(sentence, endpoint, token, model)
+    result = await do_translate(sentence, endpoint, token, model)
     return {"original": sentence, "translated": result}

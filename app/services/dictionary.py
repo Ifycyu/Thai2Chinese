@@ -1,11 +1,14 @@
+"""Dictionary service with caching and API fallback."""
 import json
-import os
+import logging
 import re
 import time
 import threading
 import urllib.request
 import urllib.parse
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 CLASS_MAP = {
     "น.": "名词", "ก.": "动词", "ว.": "形容词", "สรร.": "代词",
@@ -25,50 +28,49 @@ class Dictionary:
 
     def _load(self):
         if DICT_PATH.exists():
-            with open(DICT_PATH, "r", encoding="utf-8") as f:
-                self._entries = json.load(f)
+            try:
+                with open(DICT_PATH, "r", encoding="utf-8") as f:
+                    self._entries = json.load(f)
+                logger.info(f"Loaded {len(self._entries)} dictionary entries")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse dictionary: {e}")
+                self._entries = {}
         else:
+            logger.warning(f"Dictionary file not found: {DICT_PATH}")
             self._entries = {}
 
     def _save(self):
-        """Save entries to disk (only if changed, thread-safe)."""
         if not self._dirty:
             return
         with self._lock:
             if not self._dirty:
                 return
-            with open(DICT_PATH, "w", encoding="utf-8") as f:
-                json.dump(self._entries, f, ensure_ascii=False, indent=2)
-            self._dirty = False
+            try:
+                with open(DICT_PATH, "w", encoding="utf-8") as f:
+                    json.dump(self._entries, f, ensure_ascii=False, indent=2)
+                self._dirty = False
+                logger.debug(f"Saved {len(self._entries)} dictionary entries")
+            except Exception as e:
+                logger.error(f"Failed to save dictionary: {e}")
 
     def save(self):
-        """Public method to force save."""
         self._save()
 
     def lookup(self, word: str) -> dict | None:
-        """Thread-safe lookup."""
         with self._lock:
             return self._entries.get(word)
 
     def _lookup_api(self, word: str, api_url: str = "") -> dict | None:
-        """Look up a word using the free API and cache to memory."""
         if not api_url:
             return None
 
-        # Check memory cache first (thread-safe)
         with self._lock:
             if word in self._entries:
                 return self._entries[word]
 
-        # Rate limit: 0.1s between API calls (thread-safe)
-        with self._lock:
-            elapsed = time.time() - self._last_api_time
-            if elapsed < 0.1:
-                wait_time = 0.1 - elapsed
-            else:
-                wait_time = 0
-        if wait_time > 0:
-            time.sleep(wait_time)
+        elapsed = time.time() - self._last_api_time
+        if elapsed < 0.1:
+            time.sleep(0.1 - elapsed)
 
         data = urllib.parse.urlencode({"str": word}).encode()
         req = urllib.request.Request(api_url, data=data, method="POST")
@@ -105,13 +107,13 @@ class Dictionary:
                         "usage": ""
                     }
 
-                    # Cache to memory (thread-safe)
                     with self._lock:
                         self._entries[word] = entry
                         self._dirty = True
+                    logger.info(f"Dictionary API lookup: {word} -> {definition[:30]}...")
                     return entry
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Dictionary API error for '{word}': {e}")
 
         return None
 
