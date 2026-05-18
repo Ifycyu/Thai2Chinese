@@ -276,15 +276,15 @@ curl -X POST "http://localhost:8082/api/v1/translate?sentence=ไปเที่
   "translated": "去逛市场"
 }</pre>
 
-            <h3>6. 异步翻译（推荐）</h3>
+            <h3>6. 翻译</h3>
             <div class="endpoint">
                 <span class="method method-post">POST</span>
-                <span class="url">/api/async/translate</span>
+                <span class="url">/api/translate</span>
             </div>
-            <p>异步翻译，不阻塞。返回任务ID，然后轮询结果。</p>
+            <p>翻译泰语到中文。返回任务ID，然后轮询结果。</p>
             <pre>
 // 步骤1：提交任务
-curl -X POST "http://localhost:8082/api/async/translate" \
+curl -X POST "http://localhost:8082/api/translate" \
   -H "Content-Type: application/json" \
   -H "X-Translate-Endpoint: https://token-plan-sgpxxxxxx" \
   -H "X-Translate-Token: tp-so9m2glxxxxxx" \
@@ -294,27 +294,27 @@ curl -X POST "http://localhost:8082/api/async/translate" \
 {"task_id": "abc-123", "status": "pending"}
 
 // 步骤2：轮询结果
-curl "http://localhost:8082/api/async/task/abc-123"
+curl "http://localhost:8082/api/task/abc-123"
 
 // 返回结果
 {"task_id": "abc-123", "status": "completed", "result": "去逛市场"}</pre>
 
-            <h3>7. 异步学习分析</h3>
+            <h3>7. 学习分析</h3>
             <div class="endpoint">
                 <span class="method method-post">POST</span>
-                <span class="url">/api/async/learn</span>
+                <span class="url">/api/learn</span>
             </div>
-            <p>异步学习分析，返回任务ID后轮询结果。</p>
+            <p>学习分析泰语句子。返回任务ID，然后轮询结果。</p>
             <pre>
 // 提交任务
-curl -X POST "http://localhost:8082/api/async/learn" \
+curl -X POST "http://localhost:8082/api/learn" \
   -H "Content-Type: application/json" \
   -H "X-Translate-Endpoint: https://token-plan-sgpxxxxxx" \
   -H "X-Translate-Token: tp-so9m2glxxxxxx" \
   -d '{"sentence": "สวัสดีครับ"}'
 
 // 轮询结果
-curl "http://localhost:8082/api/async/task/{task_id}"</pre>
+curl "http://localhost:8082/api/task/{task_id}"</pre>
         </div>
 
         <div class="card">

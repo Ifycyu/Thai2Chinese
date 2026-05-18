@@ -162,7 +162,7 @@
 
             try {
                 // Start async task
-                const resp = await fetch("/api/async/translate", {
+                const resp = await fetch("/api/translate", {
                     method: "POST",
                     headers: getHeaders(),
                     body: JSON.stringify({ text: input })
@@ -192,7 +192,7 @@
                 if (!currentTaskId) return;
 
                 try {
-                    const resp = await fetch(`/api/async/task/${currentTaskId}`);
+                    const resp = await fetch(`/api/task/${currentTaskId}`);
                     const data = await resp.json();
 
                     if (data.status === "completed") {

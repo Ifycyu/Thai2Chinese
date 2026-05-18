@@ -180,7 +180,7 @@
             error.textContent = "";
 
             try {
-                const resp = await fetch("/api/async/learn", {
+                const resp = await fetch("/api/learn", {
                     method: "POST",
                     headers: getHeaders(),
                     body: JSON.stringify({ sentence: input })
@@ -209,7 +209,7 @@
                 if (!currentTaskId) return;
 
                 try {
-                    const resp = await fetch(`/api/async/task/${currentTaskId}`);
+                    const resp = await fetch(`/api/task/${currentTaskId}`);
                     const data = await resp.json();
 
                     if (data.status === "completed") {
