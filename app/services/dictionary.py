@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import ssl
 import time
 import threading
 import urllib.request
@@ -91,7 +92,12 @@ class Dictionary:
         try:
             with self._lock:
                 self._last_api_time = time.time()
-            resp = urllib.request.urlopen(req, timeout=5)
+            # Create SSL context that allows weak certificates
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.set_ciphers('DEFAULT:@SECLEVEL=1')
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            resp = urllib.request.urlopen(req, timeout=5, context=ssl_ctx)
             result = json.loads(resp.read().decode("utf-8"))
             if "1" in result and "list" in result["1"]:
                 items = result["1"]["list"]

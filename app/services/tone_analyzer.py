@@ -370,6 +370,11 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             i += 1
             continue
         if _is_consonant(ch):
+            # อ can function as a vowel (long -อ) after a consonant
+            if ch == "อ":
+                vowel_marks_found.append(ch)
+                i += 1
+                continue
             # Check if this consonant is part of a cluster
             # (followed by vowel mark or tone mark)
             if i + 1 < len(after_consonant):
@@ -490,6 +495,10 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
                 # เ-ิ is modified form of เ-อะ before final consonant
                 vowel_name = "เอ-อะ"
                 vowel_length = "short"
+            elif ch == "อ":
+                # อ as vowel after consonant = long -อ (ɔɔ)
+                vowel_name = "-อ"
+                vowel_length = "long"
             else:
                 info = VOWEL_AFTER_CONSONANT[ch]
                 vowel_name = info[0]
@@ -534,6 +543,9 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         if _is_tone_mark(ch) or ch in VOWEL_AFTER_CONSONANT or ch == "ํ":
             continue
         if _is_consonant(ch):
+            # อ used as vowel should not be treated as final consonant
+            if ch == "อ" and "อ" in vowel_marks_found:
+                continue
             if ch != main_consonant and ch not in vowel_part_consonants:
                 final_consonant = ch
             break
