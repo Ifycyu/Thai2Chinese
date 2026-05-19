@@ -214,34 +214,6 @@ function showDetail(idx) {
     h += `<div class="dp-dict-raw"><button class="dp-dict-btn" onclick="lookupDictRaw('${w.word}')">📖 查词典</button><div id="dictRawResult"></div></div>`;
 
     if (w.syllables && w.syllables.length > 0) {
-        h += `<table class="syl-table"><thead><tr>`;
-        h += `<th>音节</th><th>辅音</th><th>类别</th><th>元音</th><th>长短</th><th>调符</th><th>尾音</th><th>声调</th>`;
-        h += `</tr></thead><tbody>`;
-        w.syllables.forEach(syl => {
-            const tc = TONE_CLASS[syl.tone] || "";
-            const toneMark = syl.tone_mark || "";
-            const toneMarkDisplay = toneMark ? `◌${toneMark} ${TONE_MARK_NUM[toneMark] || ""}` : "—";
-            let finalDisplay = "—";
-            if (syl.final_consonant) {
-                const finalType = syl.final_type === "live" ? "清尾音" : "浊尾音";
-                finalDisplay = `${finalType} (${syl.final_consonant})`;
-            }
-            const vowelLenDisplay = syl.vowel_length === "short" ? "短" : syl.vowel_length === "special" ? "特殊" : "长";
-            h += `<tr>`;
-            h += `<td class="syl-thai">${syl.text}</td>`;
-            h += `<td>${syl.consonant}${syl.ho_prefix ? " (หนำ)" : ""}</td>`;
-            h += `<td>${syl.consonant_class_cn || classCN(syl.consonant_class)}</td>`;
-            h += `<td>${syl.vowel}</td>`;
-            h += `<td>${vowelLenDisplay}</td>`;
-            h += `<td>${toneMarkDisplay}</td>`;
-            h += `<td>${finalDisplay}</td>`;
-            h += `<td class="${tc}">${syl.tone_cn || TONE_CN[syl.tone]} ${TONE_NUM_CN[syl.tone_number] || ""}</td>`;
-            h += `</tr>`;
-        });
-        h += `</tbody></table>`;
-    }
-
-    if (w.syllables && w.syllables.length > 0) {
         h += `<h4 style="margin:1rem 0 0.5rem;color:#667eea;">声调分析</h4>`;
         w.syllables.forEach(syl => {
             const tc = TONE_CLASS[syl.tone] || "";
