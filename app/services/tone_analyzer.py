@@ -217,7 +217,7 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
 # Valid consonant clusters in Thai
 VALID_CLUSTERS = {
     "กร", "กล", "กว", "ขร", "ขล", "ขว", "คร", "คล", "คว",
-    "ปร", "ปล", "พร", "พล", "ทร", "ศร", "ศล", "ศว",
+    "ตร", "ปร", "ปล", "พร", "พล", "ทร", "ศร", "ศล", "ศว",
     "สร", "สก", "สต", "สบ", "สพ", "สน", "สม", "สย", "สว",
 }
 
@@ -414,9 +414,9 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             vowel_name = "เ-ะ"
             vowel_length = "short"
         elif "ิ" in vowel_marks_found:
-            # เ-ิ pattern → closed form of เ-อ (short e)
+            # เ-ิ pattern → open form of เ-อ (long /ɤː/)
             vowel_name = "เ-อ"
-            vowel_length = "short"
+            vowel_length = "long"
         else:
             # Simple เ vowel
             vowel_name = "เ-"

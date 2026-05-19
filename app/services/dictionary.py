@@ -134,6 +134,40 @@ class Dictionary:
 
         return None
 
+    def lookup_raw_api(self, word: str, api_url: str = "") -> dict | None:
+        """Call dictionary API and return the raw response."""
+        if not api_url:
+            return None
+
+        resolved_ip, error = validate_dict_api_url(api_url)
+        if error:
+            return None
+
+        request_url, original_host = build_url_with_ip(api_url, resolved_ip)
+
+        elapsed = time.time() - self._last_api_time
+        if elapsed < 0.1:
+            time.sleep(0.1 - elapsed)
+
+        data = urllib.parse.urlencode({"str": word}).encode()
+        req = urllib.request.Request(request_url, data=data, method="POST")
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        req.add_header("accept", "*/*")
+        req.add_header("Host", original_host)
+
+        try:
+            with self._lock:
+                self._last_api_time = time.time()
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.set_ciphers('DEFAULT:@SECLEVEL=1')
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            resp = urllib.request.urlopen(req, timeout=5, context=ssl_ctx)
+            return json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            logger.warning(f"Dictionary raw API error for '{word}': {e}")
+            return None
+
     def get_definition(self, word: str, api_url: str = "") -> str:
         entry = self.lookup(word)
         if entry:

@@ -47,6 +47,27 @@ async def dict_lookup(
     }
 
 
+@router.get("/dict-raw/{word}")
+async def dict_raw_lookup(
+    word: str,
+    x_dict_api: Optional[str] = Header(None),
+):
+    """Look up a word and return the raw dictionary API response."""
+    dict_api_url = x_dict_api or ""
+    if not dict_api_url:
+        raise HTTPException(status_code=400, detail="未配置词典API地址")
+
+    _, error = validate_dict_api_url(dict_api_url)
+    if error:
+        raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
+
+    result = dictionary.lookup_raw_api(word, api_url=dict_api_url)
+    if result is None:
+        raise HTTPException(status_code=502, detail="词典API请求失败")
+
+    return result
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(
     req: AnalyzeRequest,

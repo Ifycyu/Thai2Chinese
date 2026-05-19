@@ -3,12 +3,48 @@ import logging
 from app.services.tokenizer import segment_syllables
 from app.services.tone_analyzer import (
     analyze_syllable, detect_silent_prefix_split, detect_implicit_vowel,
-    CONSONANT_CLASSES, TONE_MARKS, _is_consonant
+    CONSONANT_CLASSES, TONE_MARKS, _is_consonant, VALID_CLUSTERS
 )
 from app.services.ipa_service import get_ipa
 from app.models.schemas import SyllableAnalysis
 
 logger = logging.getLogger(__name__)
+
+
+def _merge_cluster_syllables(syllables: list[str], word: str) -> list[str]:
+    """Merge syllables that were incorrectly split inside a consonant cluster.
+
+    When pythainlp splits a cluster like ตร into ตะ+รง, we detect that
+    the first two consonants of the original word form a valid cluster
+    and merge the syllables back together.
+    """
+    if len(syllables) < 2:
+        return syllables
+
+    # Find first two consonants in the original word
+    first_consonant = None
+    second_consonant = None
+    for ch in word:
+        if _is_consonant(ch):
+            if first_consonant is None:
+                first_consonant = ch
+            elif second_consonant is None:
+                second_consonant = ch
+                break
+
+    if first_consonant and second_consonant:
+        cluster = first_consonant + second_consonant
+        if cluster in VALID_CLUSTERS:
+            # Check if the split happened inside this cluster
+            # The first syllable should contain only the first consonant (+ implicit vowel)
+            syl0 = syllables[0]
+            syl1 = syllables[1]
+            # If first syllable is just first_consonant + implicit vowel (ั or ะ), merge
+            if syl0 in (first_consonant + "ั", first_consonant + "ะ"):
+                merged = first_consonant + syl1
+                return [merged] + syllables[2:]
+
+    return syllables
 
 
 def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
@@ -24,6 +60,9 @@ def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
     syllables_raw = segment_syllables(word)
     if not syllables_raw:
         syllables_raw = [word]
+
+    # Step 1.5: Merge syllables split inside consonant clusters
+    syllables_raw = _merge_cluster_syllables(syllables_raw, word)
 
     # Step 2: Check for silent prefix pattern (前引字) in each syllable
     expanded = []

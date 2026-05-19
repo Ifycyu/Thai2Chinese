@@ -446,6 +446,105 @@ main {
     color: #333;
 }
 
+/* Dictionary Raw Lookup */
+.dp-dict-raw {
+    margin: 0.75rem 0;
+}
+
+.dp-dict-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dp-dict-btn:hover {
+    opacity: 0.9;
+}
+
+.dict-raw-content {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.dict-raw-error {
+    color: #dc3545;
+    background: #fff5f5;
+    border-color: #fecaca;
+}
+
+.dict-raw-empty {
+    color: #888;
+    font-style: italic;
+}
+
+.dict-raw-item {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed #e5e7eb;
+}
+
+.dict-raw-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.dict-raw-word {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 0.25rem;
+}
+
+.dict-raw-explain {
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.dict-raw-pronu {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.dict-raw-syn {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.dict-raw-fyfx {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #555;
+    white-space: pre-wrap;
+}
+
+.dict-raw-mp3 {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.dict-raw-mp3 a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.dict-raw-mp3 a:hover {
+    text-decoration: underline;
+}
+
 /* Syllable Table */
 .syl-table {
     width: 100%;

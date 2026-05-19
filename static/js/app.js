@@ -211,6 +211,7 @@ function showDetail(idx) {
     h += `</div></div>`;
 
     h += `<div class="dp-def">${w.chinese_def}</div>`;
+    h += `<div class="dp-dict-raw"><button class="dp-dict-btn" onclick="lookupDictRaw('${w.word}')">📖 查词典</button><div id="dictRawResult"></div></div>`;
 
     if (w.syllables && w.syllables.length > 0) {
         h += `<table class="syl-table"><thead><tr>`;
@@ -288,6 +289,52 @@ async function playWord(word) {
             u.lang = "th-TH";
             speechSynthesis.speak(u);
         }
+    }
+}
+
+async function lookupDictRaw(word) {
+    const resultDiv = document.getElementById("dictRawResult");
+    if (!resultDiv) return;
+
+    const dictApi = localStorage.getItem("DICT_API_URL") || "";
+    if (!dictApi) {
+        resultDiv.innerHTML = `<div class="dict-raw-content dict-raw-error">请先在设置中配置词典API地址</div>`;
+        return;
+    }
+
+    resultDiv.innerHTML = `<div class="dict-raw-content">查询中...</div>`;
+
+    try {
+        const resp = await fetch(`/api/dict-raw/${encodeURIComponent(word)}`, {
+            headers: { "X-Dict-API": dictApi }
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+
+        // Parse and display nicely
+        let h = `<div class="dict-raw-content">`;
+        const items = data["1"]?.list || [];
+        if (items.length === 0) {
+            h += `<div class="dict-raw-empty">词典无结果</div>`;
+        } else {
+            items.forEach(item => {
+                h += `<div class="dict-raw-item">`;
+                if (item.word) h += `<div class="dict-raw-word">${item.word}</div>`;
+                if (item.explain) h += `<div class="dict-raw-explain">${item.explain}</div>`;
+                if (item.pronu) h += `<div class="dict-raw-pronu">发音：${item.pronu}</div>`;
+                if (item.thesaurus && item.thesaurus !== "[]") h += `<div class="dict-raw-syn">近义：${item.thesaurus}</div>`;
+                if (item.fyfx) h += `<div class="dict-raw-fyfx">${item.fyfx.replace(/\r\n/g, "<br>").replace(/\r/g, "<br>")}</div>`;
+                if (item.mp3) h += `<div class="dict-raw-mp3">🔊 <a href="https://xcxapi.seak.online/wxapi/t1/t2cv2?tp=3&id=${item.mp3}" target="_blank">${item.mp3}</a></div>`;
+                h += `</div>`;
+            });
+        }
+        h += `</div>`;
+        resultDiv.innerHTML = h;
+    } catch (e) {
+        resultDiv.innerHTML = `<div class="dict-raw-content dict-raw-error">查询失败：${e.message}</div>`;
     }
 }
 
