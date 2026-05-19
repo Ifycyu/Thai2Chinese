@@ -16,6 +16,7 @@ router = APIRouter(tags=["tasks"], dependencies=[Depends(get_api_key)])
 # ========== Configuration ==========
 MAX_CONCURRENT_TRANSLATE = 5      # 最多同时5个翻译请求
 MAX_CONCURRENT_LEARN = 3          # 最多同时3个学习请求
+MAX_TOTAL_TASKS = 100             # 最多同时存在100个任务（含pending/processing/completed）
 TASK_EXPIRE_SECONDS = 300         # 任务5分钟后过期
 TASK_CLEANUP_INTERVAL = 60        # 每60秒清理一次过期任务
 
@@ -54,8 +55,9 @@ async def run_translate_task(task_id: str, text: str, endpoint: str, token: str,
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["result"] = result
         except Exception as e:
+            logger.error(f"Translate task {task_id} failed: {e}")
             tasks[task_id]["status"] = "failed"
-            tasks[task_id]["error"] = str(e)
+            tasks[task_id]["error"] = "翻译失败，请稍后再试"
         finally:
             tasks[task_id]["completed_at"] = time.time()
 
@@ -69,8 +71,9 @@ async def run_learn_task(task_id: str, sentence: str, endpoint: str, token: str,
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["result"] = result
         except Exception as e:
+            logger.error(f"Learn task {task_id} failed: {e}")
             tasks[task_id]["status"] = "failed"
-            tasks[task_id]["error"] = str(e)
+            tasks[task_id]["error"] = "分析失败，请稍后再试"
         finally:
             tasks[task_id]["completed_at"] = time.time()
 
@@ -118,6 +121,9 @@ async def translate(
     if not endpoint or not token:
         return TaskResponse(task_id="", status="failed", error="请先配置翻译API")
 
+    if len(tasks) >= MAX_TOTAL_TASKS:
+        return TaskResponse(task_id="", status="failed", error="服务器繁忙，请稍后再试")
+
     task_id = str(uuid.uuid4())
     tasks[task_id] = {
         "status": "pending",
@@ -154,6 +160,9 @@ async def learn(
 
     if not endpoint or not token:
         return TaskResponse(task_id="", status="failed", error="请先配置翻译API")
+
+    if len(tasks) >= MAX_TOTAL_TASKS:
+        return TaskResponse(task_id="", status="failed", error="服务器繁忙，请稍后再试")
 
     task_id = str(uuid.uuid4())
     tasks[task_id] = {

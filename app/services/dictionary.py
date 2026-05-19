@@ -8,7 +8,7 @@ import urllib.request
 import urllib.parse
 from pathlib import Path
 
-from app.utils.url_validator import validate_url
+from app.utils.url_validator import validate_dict_api_url, build_url_with_ip
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +66,13 @@ class Dictionary:
         if not api_url:
             return None
 
-        error = validate_url(api_url)
+        resolved_ip, error = validate_dict_api_url(api_url)
         if error:
             logger.warning(f"Blocked dictionary API request: {error}")
             return None
+
+        # Use resolved IP to prevent DNS rebinding (TOCTOU)
+        request_url, original_host = build_url_with_ip(api_url, resolved_ip)
 
         with self._lock:
             if word in self._entries:
@@ -80,9 +83,10 @@ class Dictionary:
             time.sleep(0.1 - elapsed)
 
         data = urllib.parse.urlencode({"str": word}).encode()
-        req = urllib.request.Request(api_url, data=data, method="POST")
+        req = urllib.request.Request(request_url, data=data, method="POST")
         req.add_header("Content-Type", "application/x-www-form-urlencoded")
         req.add_header("accept", "*/*")
+        req.add_header("Host", original_host)
 
         try:
             with self._lock:

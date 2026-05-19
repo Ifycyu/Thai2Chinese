@@ -1,6 +1,6 @@
 """Internal API for word analysis."""
 import logging
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, HTTPException
 from typing import Optional
 
 from app.models.schemas import (
@@ -12,6 +12,7 @@ from app.services.ipa_service import get_ipa
 from app.services.tone_analyzer import CONSONANT_CLASSES, TONE_MARKS
 from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
+from app.utils.url_validator import validate_dict_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,13 @@ async def dict_lookup(
     x_dict_api: Optional[str] = Header(None),
 ):
     """Look up a single word in the dictionary."""
-    entry = dictionary.get_full_entry(word, api_url=x_dict_api or "")
+    dict_api_url = x_dict_api or ""
+    if dict_api_url:
+        _, error = validate_dict_api_url(dict_api_url)
+        if error:
+            raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
+
+    entry = dictionary.get_full_entry(word, api_url=dict_api_url)
     return {
         "word": word,
         "chinese": entry.get("chinese", ""),
@@ -53,6 +60,10 @@ async def analyze(
         return AnalyzeResponse(original=sentence, words=[])
 
     dict_api_url = x_dict_api or ""
+    if dict_api_url:
+        _, error = validate_dict_api_url(dict_api_url)
+        if error:
+            raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
     tokens = segment_words(sentence)
     words = []
 

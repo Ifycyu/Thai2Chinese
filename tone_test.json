@@ -1,0 +1,202 @@
+[
+  {
+    "word": "ฝน",
+    "vowel": "โ-ะ",
+    "vowel_length": "short",
+    "consonant": "ฝ",
+    "class": "高辅音",
+    "final": "น",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "นม",
+    "vowel": "โ-ะ",
+    "vowel_length": "short",
+    "consonant": "น",
+    "class": "低辅音",
+    "final": "ม",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "คน",
+    "vowel": "โ-ะ",
+    "vowel_length": "short",
+    "consonant": "ค",
+    "class": "低辅音",
+    "final": "น",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "ฉัน",
+    "vowel": "-ะ",
+    "vowel_length": "short",
+    "consonant": "ฉ",
+    "class": "高辅音",
+    "final": "น",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "กิน",
+    "vowel": "-ิ",
+    "vowel_length": "short",
+    "consonant": "ก",
+    "class": "中辅音",
+    "final": "น",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "เป็น",
+    "vowel": "เ-ะ",
+    "vowel_length": "short",
+    "consonant": "ป",
+    "class": "中辅音",
+    "final": "น",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "แข็ง",
+    "vowel": "แ-ะ",
+    "vowel_length": "short",
+    "consonant": "ข",
+    "class": "高辅音",
+    "final": "ง",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "เดิน",
+    "vowel": "เ-อ",
+    "vowel_length": "short",
+    "consonant": "ด",
+    "class": "中辅音",
+    "final": "น",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "กลัว",
+    "vowel": "-ัว",
+    "vowel_length": "long",
+    "consonant": "ก",
+    "class": "中辅音",
+    "final": "ว",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "เดือน",
+    "vowel": "เ-ือ",
+    "vowel_length": "long",
+    "consonant": "ด",
+    "class": "中辅音",
+    "final": "น",
+    "tone": "中声调",
+    "tone_num": 1
+  },
+  {
+    "word": "ไป",
+    "vowel": "ไ-",
+    "vowel_length": "special",
+    "consonant": "ป",
+    "class": "中辅音",
+    "final": "-",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "ใน",
+    "vowel": "ใ-",
+    "vowel_length": "special",
+    "consonant": "น",
+    "class": "低辅音",
+    "final": "-",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "เอา",
+    "vowel": "เ-า",
+    "vowel_length": "special",
+    "consonant": "อ",
+    "class": "中辅音",
+    "final": "-",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "ขำ",
+    "vowel": "-ำ",
+    "vowel_length": "special",
+    "consonant": "ข",
+    "class": "高辅音",
+    "final": "-",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "ทำ",
+    "vowel": "-ำ",
+    "vowel_length": "special",
+    "consonant": "ท",
+    "class": "低辅音",
+    "final": "-",
+    "tone": "高声调",
+    "tone_num": 4
+  },
+  {
+    "word": "หมา",
+    "vowel": "-า",
+    "vowel_length": "long",
+    "consonant": "ม",
+    "class": "高辅音",
+    "final": "-",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "สนุk",
+    "vowel": "-ุ",
+    "vowel_length": "short",
+    "consonant": "ส",
+    "class": "高辅音",
+    "final": "น",
+    "tone": "升声调",
+    "tone_num": 5
+  },
+  {
+    "word": "ตลาด",
+    "vowel": "-า",
+    "vowel_length": "long",
+    "consonant": "ต",
+    "class": "中辅音",
+    "final": "ด",
+    "tone": "低声调",
+    "tone_num": 2
+  },
+  {
+    "word": "สวัสดี",
+    "vowel": "-ะ",
+    "vowel_length": "short",
+    "consonant": "ส",
+    "class": "高辅音",
+    "final": "ด",
+    "tone": "低声调",
+    "tone_num": 2
+  },
+  {
+    "word": "พยายาม",
+    "vowel": "-า",
+    "vowel_length": "long",
+    "consonant": "พ",
+    "class": "低辅音",
+    "final": "ม",
+    "tone": "中声调",
+    "tone_num": 1
+  }
+]

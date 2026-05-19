@@ -1,9 +1,12 @@
 """Translation service - core functions only."""
 import os
 import json
+import logging
 import httpx
 
-from app.utils.url_validator import validate_url
+from app.utils.url_validator import validate_url, build_url_with_ip
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "mimo-v2.5-pro"
 
@@ -13,9 +16,12 @@ async def do_translate(text: str, endpoint: str, token: str, model: str) -> str:
     if not endpoint or not token:
         return "请先在设置页面配置翻译API"
 
-    error = validate_url(endpoint)
+    resolved_ip, error = validate_url(endpoint)
     if error:
         return f"翻译API地址被拒绝: {error}"
+
+    # Use resolved IP to prevent DNS rebinding (TOCTOU)
+    request_url, original_host = build_url_with_ip(endpoint, resolved_ip)
 
     payload = {
         "model": model,
@@ -29,14 +35,16 @@ async def do_translate(text: str, endpoint: str, token: str, model: str) -> str:
     headers = {
         "Content-Type": "application/json",
         "x-api-key": token,
-        "anthropic-version": "2023-06-01"
+        "anthropic-version": "2023-06-01",
+        "Host": original_host,
     }
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(endpoint, json=payload, headers=headers)
+            resp = await client.post(request_url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             return data["content"][0]["text"].strip()
     except Exception as e:
-        return f"翻译失败: {str(e)}"
+        logger.error(f"Translation failed: {e}")
+        return "翻译失败，请稍后再试"

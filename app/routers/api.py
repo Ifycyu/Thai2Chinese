@@ -1,6 +1,6 @@
 """External API endpoints for third-party integration."""
 import logging
-from fastapi import APIRouter, Query, Header, Depends
+from fastapi import APIRouter, Query, Header, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
@@ -10,6 +10,7 @@ from app.services.tone_analyzer import analyze_syllable
 from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
 from app.utils.auth import get_api_key
+from app.utils.url_validator import validate_dict_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,10 @@ async def analyze(
     x_dict_api: Optional[str] = Header(None, description="词典API地址"),
 ):
     dict_api_url = x_dict_api or ""
+    if dict_api_url:
+        _, error = validate_dict_api_url(dict_api_url)
+        if error:
+            raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
     tokens = segment_words(sentence.strip())
     words = []
 
@@ -128,6 +133,10 @@ async def dict_lookup(
     x_dict_api: Optional[str] = Header(None, description="词典API地址"),
 ):
     dict_api_url = x_dict_api or ""
+    if dict_api_url:
+        _, error = validate_dict_api_url(dict_api_url)
+        if error:
+            raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
     entry = dictionary.get_full_entry(word, api_url=dict_api_url)
     ipa = get_ipa(word)
     syllables = analyze_word_syllables(word)
