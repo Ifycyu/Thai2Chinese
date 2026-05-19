@@ -4,7 +4,7 @@ import json
 import logging
 import httpx
 
-from app.utils.url_validator import validate_url, build_url_with_ip
+from app.utils.url_validator import validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +14,11 @@ async def do_learn(sentence: str, endpoint: str, token: str, model: str) -> str:
     if not endpoint or not token:
         return "请先在设置页面配置翻译API"
 
-    resolved_ip, error = validate_url(endpoint)
+    _, error = validate_url(endpoint)
     if error:
         return f"翻译API地址被拒绝: {error}"
 
-    # Use resolved IP to prevent DNS rebinding (TOCTOU)
-    request_url, original_host = build_url_with_ip(endpoint, resolved_ip)
+    request_url = endpoint
 
     prompt = f"""你是一个泰语老师，专门教中国学生学泰语。学生是泰语小白，零基础。
 
@@ -67,11 +66,10 @@ async def do_learn(sentence: str, endpoint: str, token: str, model: str) -> str:
         "Content-Type": "application/json",
         "x-api-key": token,
         "anthropic-version": "2023-06-01",
-        "Host": original_host,
     }
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=60, verify=False) as client:
             resp = await client.post(request_url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()

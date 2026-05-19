@@ -51,7 +51,7 @@ async def run_translate_task(task_id: str, text: str, endpoint: str, token: str,
     async with translate_semaphore:
         try:
             tasks[task_id]["status"] = "processing"
-            result = await asyncio.to_thread(do_translate, text, endpoint, token, model)
+            result = await do_translate(text, endpoint, token, model)
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["result"] = result
         except Exception as e:
@@ -67,7 +67,7 @@ async def run_learn_task(task_id: str, sentence: str, endpoint: str, token: str,
     async with learn_semaphore:
         try:
             tasks[task_id]["status"] = "processing"
-            result = await asyncio.to_thread(do_learn, sentence, endpoint, token, model)
+            result = await do_learn(sentence, endpoint, token, model)
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["result"] = result
         except Exception as e:
