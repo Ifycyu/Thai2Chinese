@@ -1,6 +1,6 @@
 """External API endpoints for third-party integration."""
 import logging
-from fastapi import APIRouter, Query, Header
+from fastapi import APIRouter, Query, Header, Depends
 from pydantic import BaseModel
 from typing import Optional
 
@@ -9,10 +9,11 @@ from app.services.ipa_service import get_ipa
 from app.services.tone_analyzer import analyze_syllable
 from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
+from app.utils.auth import get_api_key
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v1", tags=["external-api"])
+router = APIRouter(prefix="/v1", tags=["external-api"], dependencies=[Depends(get_api_key)])
 
 
 # ========== Response Models ==========

@@ -3,14 +3,15 @@ import uuid
 import asyncio
 import logging
 import time
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.routers.translate import do_translate
 from app.routers.learn import do_learn
+from app.utils.auth import get_api_key
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["tasks"])
+router = APIRouter(tags=["tasks"], dependencies=[Depends(get_api_key)])
 
 # ========== Configuration ==========
 MAX_CONCURRENT_TRANSLATE = 5      # 最多同时5个翻译请求

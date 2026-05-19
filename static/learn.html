@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>泰语学习 - ThaiWord</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -214,7 +215,7 @@
 
                     if (data.status === "completed") {
                         clearInterval(pollTimer);
-                        document.getElementById("resultContent").innerHTML = marked.parse(data.result);
+                        document.getElementById("resultContent").innerHTML = DOMPurify.sanitize(marked.parse(data.result));
                         document.getElementById("resultSection").classList.add("show");
                         history.unshift({ sentence: input, time: new Date().toLocaleTimeString(), explanation: data.result });
                         if (history.length > 10) history.pop();
@@ -270,7 +271,7 @@
             const item = history[idx];
             if (item) {
                 document.getElementById("thaiInput").value = item.sentence;
-                document.getElementById("resultContent").innerHTML = marked.parse(item.explanation);
+                document.getElementById("resultContent").innerHTML = DOMPurify.sanitize(marked.parse(item.explanation));
                 document.getElementById("resultSection").classList.add("show");
             }
         }

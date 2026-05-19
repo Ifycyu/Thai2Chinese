@@ -8,6 +8,8 @@ import urllib.request
 import urllib.parse
 from pathlib import Path
 
+from app.utils.url_validator import validate_url
+
 logger = logging.getLogger(__name__)
 
 CLASS_MAP = {
@@ -62,6 +64,11 @@ class Dictionary:
 
     def _lookup_api(self, word: str, api_url: str = "") -> dict | None:
         if not api_url:
+            return None
+
+        error = validate_url(api_url)
+        if error:
+            logger.warning(f"Blocked dictionary API request: {error}")
             return None
 
         with self._lock:

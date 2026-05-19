@@ -22,27 +22,42 @@ class WebhookHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        if not WEBHOOK_SECRET:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(b"Webhook secret not configured")
+            return
+
         content_length = int(self.headers.get("Content-Length", 0))
+        if content_length > 65536:
+            self.send_response(413)
+            self.end_headers()
+            return
+
         body = self.rfile.read(content_length)
 
-        # Verify signature
+        # Verify signature (mandatory)
         signature = self.headers.get("X-Hub-Signature-256", "")
-        if WEBHOOK_SECRET and signature:
-            expected = "sha256=" + hmac.new(
-                WEBHOOK_SECRET.encode(),
-                body,
-                hashlib.sha256
-            ).hexdigest()
-            if not hmac.compare_digest(signature, expected):
-                self.send_response(403)
-                self.end_headers()
-                self.wfile.write(b"Invalid signature")
-                return
+        if not signature:
+            self.send_response(403)
+            self.end_headers()
+            self.wfile.write(b"Missing signature")
+            return
+
+        expected = "sha256=" + hmac.new(
+            WEBHOOK_SECRET.encode(),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            self.send_response(403)
+            self.end_headers()
+            self.wfile.write(b"Invalid signature")
+            return
 
         event = self.headers.get("X-GitHub-Event", "")
         if event == "push":
             try:
-                # Pull latest code
                 subprocess.run(
                     ["/usr/bin/git", "pull", "origin", "main"],
                     cwd=PROJECT_DIR,
@@ -51,7 +66,6 @@ class WebhookHandler(BaseHTTPRequestHandler):
                     timeout=60
                 )
 
-                # Restart service
                 subprocess.run(
                     RESTART_COMMAND.split(),
                     check=True,
@@ -63,10 +77,10 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"OK")
 
-            except Exception as e:
+            except Exception:
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(f"Error: {e}".encode())
+                self.wfile.write(b"Internal error")
         else:
             self.send_response(200)
             self.end_headers()

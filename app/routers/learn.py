@@ -3,11 +3,17 @@ import os
 import json
 import httpx
 
+from app.utils.url_validator import validate_url
+
 
 async def do_learn(sentence: str, endpoint: str, token: str, model: str) -> str:
     """Call LLM API with Thai learning prompt."""
     if not endpoint or not token:
         return "请先在设置页面配置翻译API"
+
+    error = validate_url(endpoint)
+    if error:
+        return f"翻译API地址被拒绝: {error}"
 
     prompt = f"""你是一个泰语老师，专门教中国学生学泰语。学生是泰语小白，零基础。
 

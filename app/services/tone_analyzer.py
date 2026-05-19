@@ -7,6 +7,16 @@ Determines the tone of each syllable by analyzing:
 - Final consonant type (live/dead syllable)
 - ห prefix promotion
 """
+import json
+from pathlib import Path
+
+# Load implicit vowel dictionary
+IMPLICIT_VOWELS_PATH = Path(__file__).parent.parent / "data" / "implicit_vowels.json"
+try:
+    with open(IMPLICIT_VOWELS_PATH, "r", encoding="utf-8") as f:
+        IMPLICIT_VOWELS = json.load(f)
+except FileNotFoundError:
+    IMPLICIT_VOWELS = {}
 
 # 44 Thai consonants mapped to their class
 CONSONANT_CLASSES = {
@@ -105,6 +115,7 @@ VOWEL_AFTER_CONSONANT = {
     # These are vowel marks that appear after the consonant
     "ะ": ("-ะ", "short"),      # ะ - short a
     "ั": ("-ั", "short"),      #ั  - short a (mai han-akat)
+    "็": ("-็", "short"),      #็  - shortener mark (mai taikhu)
     "า": ("-า", "long"),       # า - long a
     "ำ": ("-ำ", "special"),    # ำ - am (special)
     "ิ": ("-ิ", "short"),      #ิ  - short i
@@ -381,6 +392,10 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             # เ-ือ pattern (uea)
             vowel_name = "เ-ือ"
             vowel_length = "long"
+        elif "็" in vowel_marks_found and "อ" in vowel_marks_found:
+            # เ-็อ pattern → closed form of เ-าะ (short ɔ)
+            vowel_name = "เ-าะ"
+            vowel_length = "short"
         elif "าะ" in "".join(vowel_marks_found):
             # เ-าะ pattern (short ɔ)
             vowel_name = "เ-าะ"
@@ -390,12 +405,12 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             vowel_name = "เ-า"
             vowel_length = "special"
         elif "็" in vowel_marks_found:
-            # เ-็ pattern → base form is เ-ะ (short e, with final consonant)
+            # เ-็ pattern → closed form of เ-ะ (short e)
             vowel_name = "เ-ะ"
             vowel_length = "short"
         elif "ิ" in vowel_marks_found:
-            # เ-ิ pattern (short e, like เดิน)
-            vowel_name = "เ-ิ"
+            # เ-ิ pattern → closed form of เ-อ (short e)
+            vowel_name = "เ-อ"
             vowel_length = "short"
         else:
             # Simple เ vowel
@@ -403,13 +418,17 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             vowel_length = "long"
     elif leading_vowel == "แ":
         if "็" in vowel_marks_found:
-            # แ-็ pattern → base form is แ-ะ (short ae, with final consonant)
+            # แ-็ pattern → closed form of แ-ะ (short ae)
             vowel_name = "แ-ะ"
             vowel_length = "short"
         else:
             # Simple แ vowel
             vowel_name = "แ-"
             vowel_length = "long"
+    elif leading_vowel == "โ":
+        # โ-ะ: ะ is silent in closed syllables, but vowel is still โ-ะ
+        vowel_name = "โ-ะ"
+        vowel_length = "short"
     elif leading_vowel:
         # Other leading vowels (แ, โ, ใ, ไ)
         vowel_name = leading_vowel_name
@@ -476,9 +495,23 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
                 vowel_name = info[0]
                 vowel_length = info[1]
         else:
-            # No vowel mark found - default to long a
-            vowel_name = "-า"
-            vowel_length = "long"
+            # No vowel mark found - check implicit vowel dictionary first
+            if syllable in IMPLICIT_VOWELS:
+                implicit = IMPLICIT_VOWELS[syllable]
+                vowel_name = implicit
+                vowel_length = "short"  # Implicit vowels are typically short
+            else:
+                # Default inherent vowel
+                # Check if there's a final consonant (closed syllable)
+                has_final = any(_is_consonant(ch) for ch in after_consonant)
+                if has_final:
+                    # Closed syllable: inherent vowel is short "อะ"
+                    vowel_name = "-ะ"
+                    vowel_length = "short"
+                else:
+                    # Open syllable: inherent vowel is long "อา"
+                    vowel_name = "-า"
+                    vowel_length = "long"
 
     # Check for nikkhahit (ํ) which can indicate nasalization
     has_nikkhahit = "ํ" in chars

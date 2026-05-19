@@ -3,6 +3,8 @@ import os
 import json
 import httpx
 
+from app.utils.url_validator import validate_url
+
 DEFAULT_MODEL = "mimo-v2.5-pro"
 
 
@@ -10,6 +12,10 @@ async def do_translate(text: str, endpoint: str, token: str, model: str) -> str:
     """Async translation function using httpx."""
     if not endpoint or not token:
         return "请先在设置页面配置翻译API"
+
+    error = validate_url(endpoint)
+    if error:
+        return f"翻译API地址被拒绝: {error}"
 
     payload = {
         "model": model,
