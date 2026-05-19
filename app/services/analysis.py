@@ -6,7 +6,7 @@ from app.services.tone_analyzer import (
     CONSONANT_CLASSES, TONE_MARKS, _is_consonant
 )
 from app.services.ipa_service import get_ipa
-from app.models.schemas import SyllableAnalysis, ToneInfo
+from app.models.schemas import SyllableAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,18 @@ def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
     if not syllables_raw:
         syllables_raw = [word]
 
-    # Step 2: Check for silent prefix pattern (前引字)
-    if len(syllables_raw) == 1:
-        manual_split = detect_silent_prefix_split(word)
-        if manual_split:
-            syllables_raw = manual_split
+    # Step 2: Check for silent prefix pattern (前引字) in each syllable
+    expanded = []
+    for syl in syllables_raw:
+        if len(syl) >= 2:
+            prefix_split = detect_silent_prefix_split(syl)
+            if prefix_split:
+                expanded.extend(prefix_split)
+            else:
+                expanded.append(syl)
+        else:
+            expanded.append(syl)
+    syllables_raw = expanded
 
     # Step 3: Check for implicit vowel (隐含元音 -ะ)
     new_syllables = []

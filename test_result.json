@@ -1,0 +1,81 @@
+{
+  "original": "สวัสดี",
+  "words": [
+    {
+      "word": "สวัสดี",
+      "ipa": "swatdi",
+      "phonetic": "[สวัสดี]",
+      "word_class": "未知",
+      "word_class_abbr": "",
+      "chinese_def": "你好 再见，再会。参看 สวัสดิ์",
+      "characters": [
+        {
+          "char": "ส",
+          "role": "consonant"
+        },
+        {
+          "char": "ว",
+          "role": "consonant"
+        },
+        {
+          "char": "ั",
+          "role": "vowel"
+        },
+        {
+          "char": "ส",
+          "role": "consonant"
+        },
+        {
+          "char": "ด",
+          "role": "consonant"
+        },
+        {
+          "char": "ี",
+          "role": "vowel"
+        }
+      ],
+      "syllables": [
+        {
+          "text": "สวัส",
+          "ipa": "swat",
+          "consonant": "ส",
+          "consonant_class": "high",
+          "consonant_class_cn": "高辅音",
+          "vowel": "-ะ",
+          "vowel_length": "short",
+          "tone_mark": null,
+          "tone_mark_cn": null,
+          "final_consonant": null,
+          "final_type": "dead",
+          "ho_prefix": false,
+          "tone": "low",
+          "tone_cn": "低声调",
+          "tone_number": 2,
+          "tone_explanation": "高辅音 'ส' + 短元音 '-ะ'  → 第2调（低声调）",
+          "pronunciation_tip": "短促"
+        },
+        {
+          "text": "ดี",
+          "ipa": "di",
+          "consonant": "ด",
+          "consonant_class": "mid",
+          "consonant_class_cn": "中辅音",
+          "vowel": "-ี",
+          "vowel_length": "long",
+          "tone_mark": null,
+          "tone_mark_cn": null,
+          "final_consonant": null,
+          "final_type": "live",
+          "ho_prefix": false,
+          "tone": "mid",
+          "tone_cn": "中声调",
+          "tone_number": 1,
+          "tone_explanation": "中辅音 'ด' + 长元音 '-ี'  → 第1调（中声调）",
+          "pronunciation_tip": "长音"
+        }
+      ],
+      "examples": [],
+      "compounds": []
+    }
+  ]
+}
