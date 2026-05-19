@@ -159,10 +159,12 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
     Rules:
     - ห as prefix: silent, promotes following consonant, NO separate syllable
     - Other high-class consonants (ส, ข, etc.): split only if NO vowel between them
+    - If two consonants form a valid cluster, don't split
 
     Example: สนุก → [สะ, นุk] (ส is silent prefix, no vowel between ส and น)
     Example: ฉัน → [ฉัน] (ฉ is initial consonant, ั vowel between ฉ and น)
     Example: หมา → [หมา] (ห is silent prefix, no split)
+    Example: ขวา → [ขวา] (ข+ว is valid cluster, no split)
 
     Returns: List of syllables if pattern found, None otherwise.
     """
@@ -196,6 +198,11 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
     # If there's a vowel between the consonants, it's not a silent prefix
     # It's a normal syllable with initial + vowel + final
     if has_vowel_between:
+        return None
+
+    # Check if they form a valid cluster - if so, don't split
+    cluster = first_consonant + second_consonant
+    if cluster in VALID_CLUSTERS:
         return None
 
     # Check if first is high-class and second is low-class
@@ -275,6 +282,10 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
     if cls_first == "high" and cls_second == "low":
         return None  # This is handled by detect_silent_prefix_split
 
+    # Check if อ acts as silent prefix (อ นำ)
+    if first_consonant == "อ":
+        return None  # อ is silent, don't split
+
     # They can't form a cluster - insert implicit -ะ
     syl1 = first_consonant + "ะ"
     syl2 = "".join(chars[first_idx + 1:])
@@ -332,6 +343,18 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
                 break
             if _is_vowel(chars[j]):
                 continue  # skip vowels between ห and next consonant
+            break
+
+    # Check for อ prefix (อ นำ): silent, following consonant uses mid-class rules
+    if initial_consonant == "อ" and not ho_prefix:
+        for j in range(initial_idx + 1, len(chars)):
+            if _is_consonant(chars[j]):
+                ho_prefix = True
+                effective_consonant = chars[j]
+                consonant_class = "mid"  # อ นำ: use mid-class rules
+                break
+            if _is_vowel(chars[j]):
+                continue  # skip vowels between อ and next consonant
             break
 
     # Check for promoted consonants (from word-level high-class prefix like ส-น)
@@ -538,6 +561,15 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
     if vowel_name in ("อัว", "ิว"):
         vowel_part_consonants.add("ว")
 
+    # Consonants that are part of cluster with main consonant (not finals)
+    cluster_part_consonants = set()
+    if main_consonant:
+        for c in chars:
+            if _is_consonant(c) and c != main_consonant:
+                cluster = main_consonant + c
+                if cluster in VALID_CLUSTERS:
+                    cluster_part_consonants.add(c)
+
     # Scan from the end, skip vowel/tone marks, find the last consonant that isn't the main one
     for ch in reversed(chars):
         if _is_tone_mark(ch) or ch in VOWEL_AFTER_CONSONANT or ch == "ํ":
@@ -545,6 +577,9 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         if _is_consonant(ch):
             # อ used as vowel should not be treated as final consonant
             if ch == "อ" and "อ" in vowel_marks_found:
+                continue
+            # Part of cluster should not be treated as final consonant
+            if ch in cluster_part_consonants:
                 continue
             if ch != main_consonant and ch not in vowel_part_consonants:
                 final_consonant = ch
@@ -636,9 +671,16 @@ def _generate_explanation(
 
     # 1. Consonant
     if ho_prefix and effective_consonant:
-        parts.append(
-            f"低辅音 '{effective_consonant}' 前有高辅音 ห 引导(ห นำ)，提升为高辅音规则"
-        )
+        if initial_consonant == "ห":
+            parts.append(
+                f"低辅音 '{effective_consonant}' 前有高辅音 ห 引导(ห นำ)，提升为高辅音规则"
+            )
+        elif initial_consonant == "อ":
+            cls = CLASS_CN[consonant_class]
+            parts.append(f"{cls} '{effective_consonant}' (อ นำ，อ 静音)")
+        else:
+            cls = CLASS_CN[consonant_class]
+            parts.append(f"{cls} '{effective_consonant}'")
     else:
         cls = CLASS_CN[consonant_class]
         parts.append(f"{cls} '{initial_consonant}'")

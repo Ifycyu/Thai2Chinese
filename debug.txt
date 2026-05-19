@@ -1,0 +1,4 @@
+1. segment_syllables: ['ขวา']
+2. ขว in VALID_CLUSTERS: True
+3. detect_silent_prefix_split(ขวา): ['ขะ', 'วา']
+4. detect_implicit_vowel(ขวา): None
