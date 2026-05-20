@@ -286,13 +286,17 @@ async function lookupDictRaw(word) {
         }
         const data = await resp.json();
 
-        // Parse and display nicely
+        // Parse and display nicely - iterate all keys
         let h = `<div class="dict-raw-content">`;
-        const items = data["1"]?.list || [];
-        if (items.length === 0) {
+        const allItems = [];
+        Object.keys(data).sort().forEach(key => {
+            const items = data[key]?.list || [];
+            items.forEach(item => allItems.push(item));
+        });
+        if (allItems.length === 0) {
             h += `<div class="dict-raw-empty">词典无结果</div>`;
         } else {
-            items.forEach(item => {
+            allItems.forEach(item => {
                 h += `<div class="dict-raw-item">`;
                 if (item.word) h += `<div class="dict-raw-word">${item.word}</div>`;
                 if (item.explain) h += `<div class="dict-raw-explain">${item.explain}</div>`;
