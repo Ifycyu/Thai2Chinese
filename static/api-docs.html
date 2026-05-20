@@ -189,7 +189,8 @@ curl -X POST "http://localhost:8082/api/v1/analyze?sentence=ไปเที่�
   "words": [
     {
       "word": "ไป",
-      "ipa": "pai",
+      "ipa": "p a j ˧",
+      "romanize": "pai",
       "word_class": "动词",
       "chinese": "去",
       "syllables": [...]
@@ -211,7 +212,8 @@ curl "http://localhost:8082/api/v1/dict/สวัสดี" \
 // 返回示例
 {
   "word": "สวัสดี",
-  "ipa": "sawatdi",
+  "ipa": "s a ˧ . w a t̚ ˨˩ . d iː ˧",
+  "romanize": "swatdi",
   "chinese": "你好",
   "word_class": "感叹词",
   "syllables": [...]
@@ -249,10 +251,14 @@ curl "http://localhost:8082/api/v1/tone/สวัสดี"
   "syllables": [
     {
       "syllable": "สวัส",
+      "ipa": "s a t̚ ˨˩",
+      "romanize": "swat",
       "consonant": "ส",
       "consonant_class": "high",
       "vowel": "-ั",
-      "tone": {"tone": "rising", "tone_cn": "升声调", "tone_number": 5}
+      "tone": "falling",
+      "tone_cn": "降声调",
+      "tone_number": 3
     }
   ]
 }</pre>

@@ -200,9 +200,20 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
     if has_vowel_between:
         return None
 
+    # Check what comes right after the second consonant.
+    cluster_broken = False
+    if second_idx < len(chars) - 1:
+        next_ch = chars[second_idx + 1]
+        if next_ch in VOWEL_AFTER_CONSONANT and next_ch != "ะ":
+            if second_idx + 2 < len(chars) and _is_consonant(chars[second_idx + 2]):
+                cluster_broken = True
+        elif _is_tone_mark(next_ch):
+            if second_idx + 2 < len(chars) and _is_consonant(chars[second_idx + 2]):
+                cluster_broken = True
+
     # Check if they form a valid cluster - if so, don't split
     cluster = first_consonant + second_consonant
-    if cluster in VALID_CLUSTERS:
+    if cluster in VALID_CLUSTERS and not cluster_broken:
         return None
 
     # Check if first is high-class and second is low-class
@@ -277,22 +288,49 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
     if has_vowel_between:
         return None
 
+    # Check if the cluster is broken by a vowel/tone belonging to the second consonant.
+    # Rules:
+    # - ะ right after: implicit vowel, cluster intact (ประกอบ: ป+ร+ะ)
+    # - Other vowel (ั,า,ิ...) right after: cluster's vowel, intact (ครับ: ค+ร+ั+บ)
+    # - Tone mark (่,้,๊,๋) right after: second consonant has own tone, broken (สว่าง: ่ after ว)
+    # - Consonant between: vowel further ahead belongs to second consonant, broken (สวัส: ส between ว and ั)
+    cluster_broken = False
+    if second_idx < len(chars) - 1:
+        next_ch = chars[second_idx + 1]
+        if next_ch == "ะ":
+            pass  # Implicit vowel after cluster, intact
+        elif next_ch in VOWEL_AFTER_CONSONANT:
+            pass  # Vowel directly after second consonant is cluster's vowel, intact
+        elif _is_tone_mark(next_ch):
+            cluster_broken = True  # Tone mark after second consonant, broken
+        else:
+            # Consonant or other - look for vowel/tone further ahead
+            for j in range(second_idx + 1, len(chars)):
+                ch = chars[j]
+                if ch in VOWEL_AFTER_CONSONANT or _is_tone_mark(ch):
+                    cluster_broken = True
+                    break
+
     # Check if they form a valid cluster
     cluster = first_consonant + second_consonant
-    if cluster in VALID_CLUSTERS:
+    if cluster in VALID_CLUSTERS and not cluster_broken:
         return None
 
     # Check if it's a前引 structure (high class + low class)
     cls_first = CONSONANT_CLASSES.get(first_consonant)
     cls_second = CONSONANT_CLASSES.get(second_consonant)
-    if cls_first == "high" and cls_second == "low":
+    if cls_first == "high" and cls_second == "low" and not cluster_broken:
         return None  # This is handled by detect_silent_prefix_split
 
     # Check if อ acts as silent prefix (อ นำ)
     if first_consonant == "อ":
         return None  # อ is silent, don't split
 
-    # They can't form a cluster - insert implicit -ะ
+    # If cluster is broken, split after first consonant
+    if cluster_broken:
+        return [first_consonant + "ะ", word[first_idx + 1:]]
+
+    # They can't form a cluster - insert implicit -ะ between consonants
     syl1 = first_consonant + "ะ"
     syl2 = "".join(chars[first_idx + 1:])
     return [syl1, syl2]

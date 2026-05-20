@@ -3,9 +3,9 @@ import logging
 from app.services.tokenizer import segment_syllables
 from app.services.tone_analyzer import (
     analyze_syllable, detect_silent_prefix_split, detect_implicit_vowel,
-    CONSONANT_CLASSES, TONE_MARKS, _is_consonant, VALID_CLUSTERS
+    CONSONANT_CLASSES, TONE_MARKS, VOWEL_AFTER_CONSONANT, _is_consonant, _is_tone_mark, VALID_CLUSTERS
 )
-from app.services.ipa_service import get_ipa
+from app.services.ipa_service import get_ipa, get_romanize
 from app.models.schemas import SyllableAnalysis
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,50 @@ def _merge_cluster_syllables(syllables: list[str], word: str) -> list[str]:
     return syllables
 
 
+def _split_initial_silent_o(word: str) -> list[str] | None:
+    """Split words where อ at the start is NOT silent but pronounced as 'a'.
+
+    When a word starts with อ followed by a consonant, and there's a tone mark
+    between that consonant and the vowel, the initial อ is pronounced as a
+    separate syllable.
+
+    Example: อร่อย -> ['อะ', 'ร่อย'] (อ pronounced as 'a', tone mark before vowel)
+    Example: อยู่ -> None (อ is silent, vowel directly after consonant)
+    """
+    chars = list(word)
+    if len(chars) < 4 or chars[0] != "อ":
+        return None
+
+    # Find the second consonant
+    second_consonant_idx = -1
+    for i in range(1, len(chars)):
+        if _is_consonant(chars[i]):
+            second_consonant_idx = i
+            break
+
+    if second_consonant_idx < 0:
+        return None
+
+    # Check if there's a tone mark before the next vowel
+    has_tone_before_vowel = False
+    for i in range(second_consonant_idx + 1, len(chars)):
+        ch = chars[i]
+        if _is_tone_mark(ch):
+            has_tone_before_vowel = True
+            continue
+        if ch in VOWEL_AFTER_CONSONANT:
+            # Found vowel - if we saw a tone mark before, split
+            break
+        if _is_consonant(ch):
+            break
+
+    if not has_tone_before_vowel:
+        return None  # อ is silent (like อยู่)
+
+    # Split: first syllable is อะ, rest is the second syllable
+    return ["อะ", word[1:]]
+
+
 def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
     """Analyze a word and return syllable breakdown with tone analysis.
 
@@ -60,6 +104,12 @@ def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
     syllables_raw = segment_syllables(word)
     if not syllables_raw:
         syllables_raw = [word]
+
+    # Step 1.3: Split words where initial อ is pronounced (not silent)
+    if len(syllables_raw) == 1:
+        initial_split = _split_initial_silent_o(word)
+        if initial_split:
+            syllables_raw = initial_split
 
     # Step 1.5: Merge syllables split inside consonant clusters
     syllables_raw = _merge_cluster_syllables(syllables_raw, word)
@@ -77,18 +127,12 @@ def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
             expanded.append(syl)
     syllables_raw = expanded
 
-    # Step 3: Check for implicit vowel (隐含元音 -ะ)
-    new_syllables = []
-    for syl in syllables_raw:
-        if len(syl) >= 2:
-            implicit_split = detect_implicit_vowel(syl)
-            if implicit_split:
-                new_syllables.extend(implicit_split)
-            else:
-                new_syllables.append(syl)
-        else:
-            new_syllables.append(syl)
-    syllables_raw = new_syllables
+    # Step 3: Check for implicit vowel (隐含元音 -ะ) only on single-syllable words
+    # Don't re-split syllables that pythainlp already segmented correctly
+    if len(syllables_raw) == 1 and len(syllables_raw[0]) >= 3:
+        implicit_split = detect_implicit_vowel(syllables_raw[0])
+        if implicit_split:
+            syllables_raw = implicit_split
 
     # Step 4: Detect consonant promotion (ห นำ style)
     promoted_consonants = set()
@@ -104,8 +148,8 @@ def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:
     syllables = []
     for syl in syllables_raw:
         analysis = analyze_syllable(syl, promoted_consonants=promoted_consonants)
-        syl_ipa = get_ipa(syl)
-        analysis["ipa"] = syl_ipa
+        analysis["ipa"] = get_ipa(syl)
+        analysis["romanize"] = get_romanize(syl)
         syllables.append(SyllableAnalysis(**analysis))
 
     return syllables

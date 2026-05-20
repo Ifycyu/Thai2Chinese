@@ -8,7 +8,7 @@ from app.models.schemas import (
     WordAnalysis, Example, CharacterInfo,
 )
 from app.services.tokenizer import segment_words
-from app.services.ipa_service import get_ipa
+from app.services.ipa_service import get_ipa, get_romanize
 from app.services.tone_analyzer import CONSONANT_CLASSES, TONE_MARKS
 from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
@@ -91,6 +91,7 @@ async def analyze(
     for token in tokens:
         entry = dictionary.get_full_entry(token, api_url=dict_api_url)
         ipa = get_ipa(token)
+        rom = get_romanize(token)
 
         # Use shared analysis service
         syllables = analyze_word_syllables(token)
@@ -113,6 +114,7 @@ async def analyze(
         word_analysis = WordAnalysis(
             word=token,
             ipa=ipa,
+            romanize=rom,
             phonetic=phonetic,
             word_class=word_class,
             word_class_abbr=word_class_abbr,

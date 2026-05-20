@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.services.tokenizer import segment_words
-from app.services.ipa_service import get_ipa
+from app.services.ipa_service import get_ipa, get_romanize
 from app.services.tone_analyzer import analyze_syllable
 from app.services.analysis import analyze_word_syllables
 from app.services.dictionary import dictionary
@@ -29,6 +29,7 @@ class ToneInfo(BaseModel):
 class SyllableInfo(BaseModel):
     text: str
     ipa: str
+    romanize: str
     consonant: str
     consonant_class: str
     vowel: str
@@ -43,6 +44,7 @@ class SyllableInfo(BaseModel):
 class WordResult(BaseModel):
     word: str
     ipa: str
+    romanize: str
     word_class: str
     chinese: str
     syllables: list[SyllableInfo]
@@ -56,6 +58,7 @@ class AnalyzeResponse(BaseModel):
 class DictResponse(BaseModel):
     word: str
     ipa: str
+    romanize: str
     chinese: str
     word_class: str
     syllables: list[SyllableInfo]
@@ -75,6 +78,7 @@ def _syllable_to_info(syl) -> SyllableInfo:
     return SyllableInfo(
         text=syl.text,
         ipa=syl.ipa,
+        romanize=syl.romanize,
         consonant=syl.consonant,
         consonant_class=syl.consonant_class,
         vowel=syl.vowel,
@@ -112,11 +116,13 @@ async def analyze(
     for token in tokens:
         entry = dictionary.get_full_entry(token, api_url=dict_api_url)
         ipa = get_ipa(token)
+        rom = get_romanize(token)
         syllables = analyze_word_syllables(token)
 
         words.append(WordResult(
             word=token,
             ipa=ipa,
+            romanize=rom,
             word_class=entry.get("word_class", "未知"),
             chinese=entry.get("chinese", ""),
             syllables=[_syllable_to_info(s) for s in syllables],
@@ -139,11 +145,13 @@ async def dict_lookup(
             raise HTTPException(status_code=400, detail=f"词典API地址不合法: {error}")
     entry = dictionary.get_full_entry(word, api_url=dict_api_url)
     ipa = get_ipa(word)
+    rom = get_romanize(word)
     syllables = analyze_word_syllables(word)
 
     return DictResponse(
         word=word,
         ipa=ipa,
+        romanize=rom,
         chinese=entry.get("chinese", ""),
         word_class=entry.get("word_class", "未知"),
         syllables=[_syllable_to_info(s) for s in syllables],
@@ -170,6 +178,7 @@ async def tone(word: str):
         results.append({
             "syllable": syl.text,
             "ipa": syl.ipa,
+            "romanize": syl.romanize,
             "consonant": syl.consonant,
             "consonant_class": syl.consonant_class,
             "vowel": syl.vowel,

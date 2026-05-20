@@ -5,6 +5,7 @@ from typing import Optional
 class SyllableAnalysis(BaseModel):
     text: str
     ipa: str
+    romanize: str
     consonant: str
     consonant_class: str  # "mid" | "high" | "low"
     consonant_class_cn: str  # "中辅音" | "高辅音" | "低辅音"
@@ -35,6 +36,7 @@ class Example(BaseModel):
 class WordAnalysis(BaseModel):
     word: str
     ipa: str
+    romanize: str
     phonetic: str  # with tone marks like [tà-làat]
     word_class: str
     word_class_abbr: str  # Thai abbreviation like น., ก.
