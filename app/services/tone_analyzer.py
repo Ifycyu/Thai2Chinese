@@ -237,12 +237,18 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
 
     Example: พยายาม → [พะ, ยา, ยาม] (พ and ย can't form cluster)
     Example: ตำรวจ → [ตำ, รวจ] (ต and ร can form cluster ตร)
+    Example: แฟน → [แฟน] (แ is leading vowel, no implicit vowel needed)
 
     Returns: List of syllables if implicit vowel found, None otherwise.
     """
     chars = list(word)
     if len(chars) < 3:
         return None
+
+    # Check for leading vowel (เ, แ, โ, ใ, ไ) before first consonant
+    has_leading_vowel = any(ch in ("เ", "แ", "โ", "ใ", "ไ") for ch in chars)
+    if has_leading_vowel:
+        return None  # Leading vowel present, no implicit vowel needed
 
     # Find first two consonants
     first_consonant = None
