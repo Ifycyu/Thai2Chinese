@@ -683,6 +683,7 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
         initial_consonant=initial_consonant,
         effective_consonant=effective_consonant if ho_prefix else None,
         consonant_class=consonant_class,
+        original_class=original_class,
         ho_prefix=ho_prefix,
         vowel_name=vowel_name,
         vowel_length=vowel_length,
@@ -732,7 +733,7 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
 
 def _generate_explanation(
     initial_consonant, effective_consonant, consonant_class,
-    ho_prefix, vowel_name, vowel_length,
+    original_class, ho_prefix, vowel_name, vowel_length,
     tone_mark, tone_mark_name, final_consonant, final_type, tone
 ) -> str:
     parts = []
@@ -744,11 +745,14 @@ def _generate_explanation(
                 f"低辅音 '{effective_consonant}' 前有高辅音 ห 引导(ห นำ)，提升为高辅音规则"
             )
         elif initial_consonant == "อ":
-            cls = CLASS_CN[consonant_class]
-            parts.append(f"{cls} '{effective_consonant}' (อ นำ，อ 静音)")
+            cls = CLASS_CN[original_class]
+            parts.append(f"{cls} '{effective_consonant}' (อ นำ，按中辅音规则)")
         else:
-            cls = CLASS_CN[consonant_class]
-            parts.append(f"{cls} '{effective_consonant}'")
+            cls = CLASS_CN[original_class]
+            parts.append(f"{cls} '{effective_consonant}' (提升为{CLASS_CN[consonant_class]}规则)")
+    elif original_class != consonant_class:
+        cls = CLASS_CN[original_class]
+        parts.append(f"{cls} '{initial_consonant}' (提升为{CLASS_CN[consonant_class]}规则)")
     else:
         cls = CLASS_CN[consonant_class]
         parts.append(f"{cls} '{initial_consonant}'")
