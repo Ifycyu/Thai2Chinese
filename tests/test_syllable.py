@@ -62,6 +62,23 @@ SYLLABLE_TESTS = [
     # === 辅音簇 ขว ===
     ("ขวา",         "ขวา",              1),  # ขว cluster intact
 
+    # === อ as vowel after consonant ===
+    ("คอน",         "คอน",              1),  # อ is vowel -อ, not consonant
+
+    # === ห นำ with tone mark ===
+    ("เห็น",        "เห็น",             1),  # ห นำ, tone mark doesn't break
+    ("หน่อย",       "หน่อย",            1),  # ห นำ, tone mark doesn't break
+
+    # === อ นำ ===
+    ("อีก",         "อีก",              1),  # อ นำ
+
+    # === multi-syllable ===
+    ("กังวล",       "กัง+วล",           2),
+
+    # === single syllable ===
+    ("ตก",          "ตก",               1),
+    ("สาย",         "สาย",              1),
+
     # === ห นำ ===
     ("ห้องน้ำ",     "ห้อง+น้ำ",         2),  # ห นำ, two syllables
     ("เหรอ",        "เหรอ",             1),  # ห นำ, อ as vowel

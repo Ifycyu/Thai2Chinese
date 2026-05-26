@@ -316,11 +316,21 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
     if cluster in VALID_CLUSTERS and not cluster_broken:
         return None
 
-    # Check if it's a前引 structure (high class + low class)
+    # Check if it's ห นำ (ห as silent prefix)
+    # ห นำ is NOT broken by tone marks (e.g. หน่อย)
     cls_first = CONSONANT_CLASSES.get(first_consonant)
     cls_second = CONSONANT_CLASSES.get(second_consonant)
+    if first_consonant == "ห" and cls_second == "low":
+        return None  # ห นำ, don't split
+
+    # Check if it's other high+low前引 structure (broken by tone marks)
     if cls_first == "high" and cls_second == "low" and not cluster_broken:
-        return None  # This is handled by detect_silent_prefix_split
+        return None
+
+    # Check if second consonant is อ acting as vowel (e.g. คอน = ค + อ + น)
+    if second_consonant == "อ" and second_idx < len(chars) - 1:
+        # อ followed by another consonant = vowel -อ with final consonant
+        return None
 
     # Check if อ acts as silent prefix (อ นำ)
     if first_consonant == "อ":
@@ -362,7 +372,8 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
     # Step 2: Determine consonant class and check for ห prefix
     ho_prefix = False
     effective_consonant = initial_consonant
-    consonant_class = CONSONANT_CLASSES[initial_consonant]
+    original_class = CONSONANT_CLASSES[initial_consonant]
+    consonant_class = original_class
 
     # Check for leading vowel (เ, แ, โ, ใ, ไ) before consonant
     leading_vowel = None
@@ -685,12 +696,25 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
     # Step 9: Generate pronunciation tip
     pronunciation_tip = _generate_pronunciation_tip(vowel_length, final_consonant, final_type)
 
+    # Generate consonant class display with promotion info
+    if ho_prefix and effective_consonant:
+        if initial_consonant == "ห":
+            consonant_class_cn = f"{CLASS_CN[original_class]}(ห นำ→{CLASS_CN[consonant_class]})"
+        elif initial_consonant == "อ":
+            consonant_class_cn = f"{CLASS_CN[original_class]}(อ นำ→{CLASS_CN[consonant_class]})"
+        else:
+            consonant_class_cn = CLASS_CN[consonant_class]
+    elif original_class != consonant_class:
+        consonant_class_cn = f"{CLASS_CN[original_class]}(提升→{CLASS_CN[consonant_class]})"
+    else:
+        consonant_class_cn = CLASS_CN[consonant_class]
+
     return {
         "text": syllable,
         "ipa": "",
         "consonant": effective_consonant,
         "consonant_class": consonant_class,
-        "consonant_class_cn": CLASS_CN[consonant_class],
+        "consonant_class_cn": consonant_class_cn,
         "vowel": vowel_name,
         "vowel_length": vowel_length,
         "tone_mark": tone_mark,
