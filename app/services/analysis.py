@@ -51,11 +51,11 @@ def _split_initial_silent_o(word: str) -> list[str] | None:
     """Split words where อ at the start is NOT silent but pronounced as 'a'.
 
     When a word starts with อ followed by a consonant, and there's a tone mark
-    between that consonant and the vowel, the initial อ is pronounced as a
-    separate syllable.
+    between that consonant and the vowel อ (consonant used as vowel),
+    the initial อ is pronounced as a separate syllable.
 
-    Example: อร่อย -> ['อะ', 'ร่อย'] (อ pronounced as 'a', tone mark before vowel)
-    Example: อยู่ -> None (อ is silent, vowel directly after consonant)
+    Example: อร่อย -> ['อะ', 'ร่อย'] (อ pronounced, vowel อ after tone mark)
+    Example: อย่า -> None (อ is silent, vowel า after tone mark)
     """
     chars = list(word)
     if len(chars) < 4 or chars[0] != "อ":
@@ -71,24 +71,23 @@ def _split_initial_silent_o(word: str) -> list[str] | None:
     if second_consonant_idx < 0:
         return None
 
-    # Check if there's a tone mark before the next vowel
-    has_tone_before_vowel = False
+    # Check if there's a tone mark followed by vowel อ (consonant used as vowel)
+    has_tone = False
+    vowel_after_tone = None
     for i in range(second_consonant_idx + 1, len(chars)):
         ch = chars[i]
         if _is_tone_mark(ch):
-            has_tone_before_vowel = True
+            has_tone = True
             continue
-        if ch in VOWEL_AFTER_CONSONANT:
-            # Found vowel - if we saw a tone mark before, split
-            break
-        if _is_consonant(ch):
+        if ch in VOWEL_AFTER_CONSONANT or _is_consonant(ch):
+            vowel_after_tone = ch
             break
 
-    if not has_tone_before_vowel:
-        return None  # อ is silent (like อยู่)
+    # Only split if tone mark is followed by อ (consonant used as vowel)
+    if has_tone and vowel_after_tone == "อ":
+        return ["อะ", word[1:]]
 
-    # Split: first syllable is อะ, rest is the second syllable
-    return ["อะ", word[1:]]
+    return None  # อ is silent
 
 
 def analyze_word_syllables(word: str) -> list[SyllableAnalysis]:

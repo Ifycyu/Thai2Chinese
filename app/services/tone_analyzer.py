@@ -160,17 +160,24 @@ def detect_silent_prefix_split(word: str) -> list[str] | None:
     - ห as prefix: silent, promotes following consonant, NO separate syllable
     - Other high-class consonants (ส, ข, etc.): split only if NO vowel between them
     - If two consonants form a valid cluster, don't split
+    - If there's a leading vowel before the first consonant, don't split
 
     Example: สนุก → [สะ, นุk] (ส is silent prefix, no vowel between ส and น)
     Example: ฉัน → [ฉัน] (ฉ is initial consonant, ั vowel between ฉ and น)
     Example: หมา → [หมา] (ห is silent prefix, no split)
     Example: ขวา → [ขวา] (ข+ว is valid cluster, no split)
+    Example: แขน → [แขน] (แ is leading vowel, no split)
 
     Returns: List of syllables if pattern found, None otherwise.
     """
     chars = list(word)
     if len(chars) < 3:
         return None
+
+    # Check for leading vowel (เ, แ, โ, ใ, ไ) before first consonant
+    has_leading_vowel = any(ch in ("เ", "แ", "โ", "ใ", "ไ") for ch in chars[:2])
+    if has_leading_vowel:
+        return None  # Leading vowel present, first consonant is initial, not silent prefix
 
     # Find first two consonants and check for vowels between them
     first_consonant = None
@@ -292,7 +299,7 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
     # Rules:
     # - ะ right after: implicit vowel, cluster intact (ประกอบ: ป+ร+ะ)
     # - Other vowel (ั,า,ิ...) right after: cluster's vowel, intact (ครับ: ค+ร+ั+บ)
-    # - Tone mark (่,้,๊,๋) right after: second consonant has own tone, broken (สว่าง: ่ after ว)
+    # - Tone mark + vowel after: cluster's tone mark, intact (กล้อง: ล+้+อ)
     # - Consonant between: vowel further ahead belongs to second consonant, broken (สวัส: ส between ว and ั)
     cluster_broken = False
     if second_idx < len(chars) - 1:
@@ -302,7 +309,21 @@ def detect_implicit_vowel(word: str) -> list[str] | None:
         elif next_ch in VOWEL_AFTER_CONSONANT:
             pass  # Vowel directly after second consonant is cluster's vowel, intact
         elif _is_tone_mark(next_ch):
-            cluster_broken = True  # Tone mark after second consonant, broken
+            # Tone mark after second consonant
+            # For high+low pattern (ส+ว), tone mark breaks cluster (e.g. สว่าง)
+            # For other patterns, check if followed by vowel (e.g. กล้อง, กล้วย)
+            cls_first = CONSONANT_CLASSES.get(first_consonant)
+            cls_second = CONSONANT_CLASSES.get(second_consonant)
+            if cls_first == "high" and cls_second == "low":
+                cluster_broken = True  # High+low with tone mark = broken
+            elif second_idx + 2 < len(chars):
+                next_after_tone = chars[second_idx + 2]
+                if next_after_tone in VOWEL_AFTER_CONSONANT or next_after_tone in ("อ", "ว"):
+                    pass  # Tone mark + vowel = cluster intact
+                else:
+                    cluster_broken = True
+            else:
+                cluster_broken = True
         else:
             # Consonant or other - look for vowel/tone further ahead
             for j in range(second_idx + 1, len(chars)):
@@ -610,23 +631,32 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
 
     # Consonants that can be part of vowel patterns (not finals)
     vowel_part_consonants = set()
-    if vowel_name in ("เอีย", "เอือ"):
+    if vowel_name in ("เอีย", "เอือ", "เ-ีย", "เ-ือ"):
         vowel_part_consonants.add("ย")
         vowel_part_consonants.add("อ")
-    if vowel_name in ("อัว", "ิว"):
+    if vowel_name in ("อัว", "ิว", "-ัว", "-ิว"):
         vowel_part_consonants.add("ว")
 
     # Consonants that are part of cluster with main consonant (not finals)
+    # Only consider consonants adjacent to main_consonant as part of cluster
     cluster_part_consonants = set()
-    if main_consonant:
-        for c in chars:
-            if _is_consonant(c) and c != main_consonant:
-                cluster = main_consonant + c
-                if cluster in VALID_CLUSTERS:
-                    cluster_part_consonants.add(c)
+    if main_consonant and initial_idx + 1 < len(chars):
+        next_char = chars[initial_idx + 1]
+        if _is_consonant(next_char):
+            cluster = main_consonant + next_char
+            if cluster in VALID_CLUSTERS:
+                cluster_part_consonants.add(next_char)
 
     # Scan from the end, skip vowel/tone marks, find the last consonant that isn't the main one
-    for ch in reversed(chars):
+    # Find the index of the effective consonant (main consonant of the syllable)
+    main_consonant_idx = initial_idx
+    if ho_prefix and effective_consonant:
+        for i, ch in enumerate(chars):
+            if ch == effective_consonant and i != initial_idx:
+                main_consonant_idx = i
+                break
+    for i in range(len(chars) - 1, -1, -1):
+        ch = chars[i]
         if _is_tone_mark(ch) or ch in VOWEL_AFTER_CONSONANT or ch == "ํ":
             continue
         if _is_consonant(ch):
@@ -636,7 +666,13 @@ def analyze_syllable(syllable: str, promoted_consonants: set = None) -> dict:
             # Part of cluster should not be treated as final consonant
             if ch in cluster_part_consonants:
                 continue
-            if ch != main_consonant and ch not in vowel_part_consonants:
+            # Skip the main consonant (by position, not by character)
+            if i == main_consonant_idx:
+                continue
+            # Skip the initial consonant when it's a silent prefix (ห นำ or อ นำ)
+            if ho_prefix and i == initial_idx:
+                continue
+            if ch not in vowel_part_consonants:
                 final_consonant = ch
             break
 
